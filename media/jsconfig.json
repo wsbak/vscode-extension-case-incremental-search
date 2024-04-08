@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		"module": "Node16",
+		"target": "ES2022",
+		"jsx": "preserve",
+		"checkJs": true,
+		"strict": true,
+		"strictFunctionTypes": true,
+		"lib": [
+			"dom"
+		]
+	},
+	"exclude": [
+		"node_modules",
+		"**/node_modules/*"
+	],
+	"typeAcquisition": {
+		"include": [
+			"@types/vscode-webview"
+		]
+	}
+}

@@ -1,0 +1,25 @@
+
+first.hello.world.last
+First.Hello.World.Last
+FIRST.HELLO.WORLD.LAST
+
+first-hello-world-last
+First-Hello-World-Last
+FIRST-HELLO-WORLD-LAST
+
+helloWorldLast
+firstHelloWorldLast
+FirstHelloWorldLast
+FIRSTHELLOWORLDLAST
+
+first_hello_world_last
+First_Hello_World_Last
+FIRST_HELLO_WORLD_LAST
+
+first hello world last
+First Hello World Last
+FIRST HELLO WORLD LAST
+
+first/hello/world/last
+HellFirst/World/Last
+FIRST/HELLO/WORLD/LAST
