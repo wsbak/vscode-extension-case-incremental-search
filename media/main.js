@@ -17,6 +17,11 @@
     const capitalCase       = document.getElementById('capital-case');
     const pathCase          = document.getElementById('path-case');
 
+    // Focus on textToSearch at beginning
+    textToSearch?.focus();
+    // Cursor at the of the text
+    textToSearch.selectionStart = textToSearch.selectionEnd = 10000;
+
     // Mmi item which has the focus before incremental sendSearchCommand
     let focusItem = undefined;
 

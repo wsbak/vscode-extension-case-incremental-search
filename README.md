@@ -22,7 +22,7 @@ Input your query string for custom searching.
 
 ![screenshot1](resources/screenshot1.gif)
 
-Also, the search box can be show up by invoking the command `Case Search: Incremental search by case` from the Command Palette.  
+Also, the search panel can be show up by invoking the command `Case Search: Incremental search by case` from the Command Palette.  
 The Command Palette can be invoked by the shortcut key `⇧+⌘+P`.  
 
 ![screenshot2](resources/screenshot2.gif)
