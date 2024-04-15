@@ -19,7 +19,7 @@
 
     // Focus on textToSearch at beginning
     textToSearch?.focus();
-    // Cursor at the of the text
+    // Cursor at the end of the text
     textToSearch.selectionStart = textToSearch.selectionEnd = 10000;
 
     // Mmi item which has the focus before incremental sendSearchCommand

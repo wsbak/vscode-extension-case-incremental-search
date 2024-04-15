@@ -9,6 +9,36 @@ const { buildRegexQuery, messageToRegexQuery } = exportedForTesting;
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
 
+	test('buildRegexQuery', () => {
+		const query = "one two_three-Four";
+
+		assert.strictEqual(buildRegexQuery(query, []), "");
+
+		assert.strictEqual(buildRegexQuery(query, [paramCase]),    "one-two-three-four");
+		assert.strictEqual(buildRegexQuery(query, [camelCase]),    "oneTwoThreeFour");
+		assert.strictEqual(buildRegexQuery(query, [pascalCase]),   "OneTwoThreeFour");
+		assert.strictEqual(buildRegexQuery(query, [snakeCase]),    "one_two_three_four");
+		assert.strictEqual(buildRegexQuery(query, [constantCase]), "ONE_TWO_THREE_FOUR");
+		assert.strictEqual(buildRegexQuery(query, [capitalCase]),  "One Two Three Four");
+		assert.strictEqual(buildRegexQuery(query, [pathCase]),     "one/two/three/four");
+
+		assert.strictEqual(buildRegexQuery(query, [paramCase, camelCase]),
+							"one-two-three-four|oneTwoThreeFour");
+
+		assert.strictEqual(buildRegexQuery(query, [camelCase, capitalCase]),
+							"oneTwoThreeFour|One Two Three Four");
+
+		assert.strictEqual(buildRegexQuery(query, [pascalCase, snakeCase, constantCase]),
+							"OneTwoThreeFour|one_two_three_four|ONE_TWO_THREE_FOUR");
+
+		assert.strictEqual(buildRegexQuery(query, [pascalCase, snakeCase, constantCase, camelCase, paramCase]),
+							"OneTwoThreeFour|one_two_three_four|ONE_TWO_THREE_FOUR|oneTwoThreeFour|one-two-three-four");
+
+		// Duplicates are removed
+		assert.strictEqual(buildRegexQuery(query, [pascalCase, constantCase, pascalCase]),
+							"OneTwoThreeFour|ONE_TWO_THREE_FOUR");
+	});
+
 	test('transformQuery2RegExp', () => {
 		// Build a message for transformQuery2RegExp
 		function m(text: string, selectedCases: string): any {
@@ -56,35 +86,5 @@ suite('Extension Test Suite', () => {
 		// No fonction selected, so apply all
 		assert.strictEqual(messageToRegexQuery(m(query1, "")),
 							"one-two-three-four|oneTwoThreeFour|OneTwoThreeFour|one_two_three_four|ONE_TWO_THREE_FOUR|One Two Three Four|one/two/three/four");
-	});
-
-	test('buildRegexQuery', () => {
-		const query = "one two_three-Four";
-
-		assert.strictEqual(buildRegexQuery(query, []), "");
-
-		assert.strictEqual(buildRegexQuery(query, [paramCase]),    "one-two-three-four");
-		assert.strictEqual(buildRegexQuery(query, [camelCase]),    "oneTwoThreeFour");
-		assert.strictEqual(buildRegexQuery(query, [pascalCase]),   "OneTwoThreeFour");
-		assert.strictEqual(buildRegexQuery(query, [snakeCase]),    "one_two_three_four");
-		assert.strictEqual(buildRegexQuery(query, [constantCase]), "ONE_TWO_THREE_FOUR");
-		assert.strictEqual(buildRegexQuery(query, [capitalCase]),  "One Two Three Four");
-		assert.strictEqual(buildRegexQuery(query, [pathCase]),     "one/two/three/four");
-
-		assert.strictEqual(buildRegexQuery(query, [paramCase, camelCase]),
-							"one-two-three-four|oneTwoThreeFour");
-
-		assert.strictEqual(buildRegexQuery(query, [camelCase, capitalCase]),
-							"oneTwoThreeFour|One Two Three Four");
-
-		assert.strictEqual(buildRegexQuery(query, [pascalCase, snakeCase, constantCase]),
-							"OneTwoThreeFour|one_two_three_four|ONE_TWO_THREE_FOUR");
-
-		assert.strictEqual(buildRegexQuery(query, [pascalCase, snakeCase, constantCase, camelCase, paramCase]),
-							"OneTwoThreeFour|one_two_three_four|ONE_TWO_THREE_FOUR|oneTwoThreeFour|one-two-three-four");
-
-		// Duplicates are removed
-		assert.strictEqual(buildRegexQuery(query, [pascalCase, constantCase, pascalCase]),
-							"OneTwoThreeFour|ONE_TWO_THREE_FOUR");
 	});
 });
