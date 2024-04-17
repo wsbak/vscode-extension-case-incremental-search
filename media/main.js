@@ -8,6 +8,9 @@
     const incrementalSearch = document.getElementById('incremental-search');
     const sensitiveCase     = document.getElementById('sensitive-case');
     const wholeWord         = document.getElementById('whole-word');
+    const caseWholeWord     = document.getElementById('case-whole-word');
+    const caseBeginWord     = document.getElementById('case-begin-word');
+    const caseEndWord       = document.getElementById('case-end-word');
     const textToSearch      = document.getElementById('text-to-search');
     const kebabCase         = document.getElementById('kebab-case');
     const camelCase         = document.getElementById('camel-case');
@@ -33,6 +36,8 @@
             incrementalSearch: incrementalSearch?.checked,
             sensitiveCase:     sensitiveCase?.checked,
             wholeWord:         wholeWord?.checked,
+            caseBeginWord:     caseBeginWord?.checked,
+            caseEndWord:       caseEndWord?.checked,
             text:              textToSearch?.value,
             kebabCase:         kebabCase?.checked,
             camelCase:         camelCase?.checked,
@@ -66,21 +71,18 @@
             console.log("Enter key");
             sendSearchCommand('okButton');
         }
-    })
+    });
 
     incrementalSearch?.addEventListener('input', (event) => {
         // When incrementalSearch, okButton is useless
         if (incrementalSearch?.checked) {
-            okButton?.setAttribute('hidden', 'hidden')
+            okButton?.setAttribute('hidden', 'hidden');
         }
         else {
-            okButton?.removeAttribute('hidden')
+            okButton?.removeAttribute('hidden');
         }
     });
 
-    sensitiveCase?. addEventListener('input', (event) => { searchIncremental(event); });
-    wholeWord?.     addEventListener('input', (event) => { searchIncremental(event); });
-    textToSearch?.  addEventListener('input', (event) => { searchIncremental(event); });
     kebabCase?.     addEventListener('input', (event) => { searchIncremental(event); });
     camelCase?.     addEventListener('input', (event) => { searchIncremental(event); });
     pascalCase?.    addEventListener('input', (event) => { searchIncremental(event); });
@@ -88,6 +90,40 @@
     upperSnakeCase?.addEventListener('input', (event) => { searchIncremental(event); });
     capitalCase?.   addEventListener('input', (event) => { searchIncremental(event); });
     pathCase?.      addEventListener('input', (event) => { searchIncremental(event); });
+    sensitiveCase?. addEventListener('input', (event) => { searchIncremental(event); });
+    textToSearch?.  addEventListener('input', (event) => { searchIncremental(event); });
+    // wholeWord and any of caseXxxWord are incompatibles
+    wholeWord?.     addEventListener('input', (event) => {
+        if (wholeWord?.checked) {
+            caseWholeWord.checked = false;
+            caseBeginWord.checked = false;
+            caseEndWord.checked   = false;
+        }
+        searchIncremental(event);
+    });
+    // caseWholeWord = caseBeginWord & caseEndWord
+    caseWholeWord?. addEventListener('input', (event) => {
+        if (caseWholeWord?.checked) {
+            wholeWord.checked = false;
+        }
+        caseBeginWord.checked = caseWholeWord?.checked;
+        caseEndWord.checked   = caseWholeWord?.checked;
+        searchIncremental(event);
+    });
+    caseBeginWord?. addEventListener('input', (event) => {
+        if (caseBeginWord?.checked) {
+            wholeWord.checked = false;
+        }
+        caseWholeWord.checked = caseBeginWord?.checked && caseEndWord?.checked;
+        searchIncremental(event);
+    });
+    caseEndWord?.   addEventListener('input', (event) => {
+        if (caseEndWord?.checked) {
+            wholeWord.checked = false;
+        }
+        caseWholeWord.checked = caseBeginWord?.checked && caseEndWord?.checked;
+        searchIncremental(event);
+    });
 
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {

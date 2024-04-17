@@ -14,6 +14,7 @@ Supports the following cases:
 
 If no case is specified, it defaults to **all cases**.
 
+
 ## Usage
 
 The fastest way to use it is to use shortcut keys `Ctrl+F1`, `⌘+F1`.  
@@ -27,4 +28,21 @@ The Command Palette can be invoked by the shortcut key `Ctrl+⇧+P`, `⇧+⌘+P`
 
 ![screenshot2](resources/screenshot2.gif)
 
-## **Enjoy!**
+
+## Case Begin/End/Whole Word  
+
+Can search for :  
+- word at beggining  
+- word at end  
+- whole word  
+
+Taking into account the separator of the selected cases  
+
+Case Search for word at beggining :  
+![screenshot_caseBeginWord](resources/screenshot_caseBeginWord.gif)
+
+Case Search for word at end :  
+![screenshot_caseEndWord](resources/screenshot_caseEndWord.gif)
+
+Case Search for whole word :  
+![screenshot_caseWholeWord](resources/screenshot_caseWholeWord.gif)

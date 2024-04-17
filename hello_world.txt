@@ -2,24 +2,30 @@
 first.hello.world.last
 First.Hello.World.Last
 FIRST.HELLO.WORLD.LAST
+another_first.hello.world.last_another
 
 first-hello-world-last
 First-Hello-World-Last
 FIRST-HELLO-WORLD-LAST
+another_first-hello-world-last_another
 
 helloWorldLast
 firstHelloWorldLast
 FirstHelloWorldLast
 FIRSTHELLOWORLDLAST
+another_firstHelloWorldLast_another
 
 first_hello_world_last
 First_Hello_World_Last
 FIRST_HELLO_WORLD_LAST
+another-first_hello_world_last-another
 
 first hello world last
 First Hello World Last
 FIRST HELLO WORLD LAST
+another_first hello world last_another
 
 first/hello/world/last
-HellFirst/World/Last
+First/Hello/World/Last
 FIRST/HELLO/WORLD/LAST
+another_first/hello/world/last_another

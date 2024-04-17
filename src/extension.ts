@@ -3,11 +3,46 @@ import type { ExtensionContext } from "vscode";
 import { paramCase, pascalCase, constantCase, snakeCase, camelCase, capitalCase, pathCase } from "change-case";
 
 
+// build regex which exclude letter/number/separator before the beginning or after the end
+function buildRegexExclude(separator: string, preceded: boolean): string {
+	if (separator === ".") {
+		separator = "\\.";
+	}
+	const precededStr = preceded === true ? "<" : "";
+	// \p{L} = any letter, not only ascii/latin
+	// \d    = digit
+	return `(?${precededStr}![\\p{L}\\d${separator}])`;
+
+	// ATTENTION
+	// xxxCase manage only ascii characters : see test('xxxCase'
+	// So using \p{L} seems strange/useless/contradictory
+}
+
+// build regex which exclude letter/number/separator before the beginning
+function buildRegexExcludePreceded(separator: string): string {
+	return buildRegexExclude(separator, true);
+}
+
+// build regex which exclude letter/number/separator after the end
+function buildRegexExcludeFollowed(separator: string): string {
+	return buildRegexExclude(separator, false);
+}
+
 // build regex query with all cases selected
-function buildRegexQuery(query: string, selectedCaseFunctions: readonly any[]): string {
+function buildRegexQuery(query: string, selectedCaseFunctions: readonly any[], message: any): string {
 	const queries: string[] = [];
-	for (const caseFunction of selectedCaseFunctions) {
-		const queryScope = caseFunction(query) || query;
+	for (const caseFunctionData of selectedCaseFunctions) {
+		const caseFunction = caseFunctionData[0];
+		let queryScope = caseFunction(query) || query;
+
+		const separator: string = caseFunctionData[1];
+		if (message.caseBeginWord) {
+			queryScope = buildRegexExcludePreceded(separator) + queryScope;
+		}
+		if (message.caseEndWord) {
+			queryScope = queryScope + buildRegexExcludeFollowed(separator);
+		}
+
 		queries.push(queryScope);
 	}
   
@@ -22,33 +57,42 @@ function removeDuplicates<T>(array: T[]): T[] {
 	return [...new Set(array)];
 }
 
+// Convert function with their separator
+const paramCaseData:    any[] = [paramCase,    "-"];
+const camelCaseData:    any[] = [camelCase,    ""];
+const pascalCaseData:   any[] = [pascalCase,   ""];
+const snakeCaseData:    any[] = [snakeCase,    "_"];
+const constantCaseData: any[] = [constantCase, "_"];
+const capitalCaseData:  any[] = [capitalCase,  " "];
+const pathCaseData:     any[] = [pathCase,     "/"];
+
 const convertFunctions: any = [
-	paramCase,
-	camelCase,
-	pascalCase,
-	snakeCase,
-	constantCase,
-	capitalCase,
-	pathCase,
+	paramCaseData,
+	camelCaseData,
+	pascalCaseData,
+	snakeCaseData,
+	constantCaseData,
+	capitalCaseData,
+	pathCaseData,
 ];
 
 // build regex query with all cases selected
 function messageToRegexQuery(message: any): string {
 	let selectedCaseFunctions: any[] = [];
-	if (message.kebabCase)      { selectedCaseFunctions.push(paramCase);    }
-	if (message.camelCase)      { selectedCaseFunctions.push(camelCase);    }
-	if (message.pascalCase)     { selectedCaseFunctions.push(pascalCase);   }
-	if (message.snakeCase)      { selectedCaseFunctions.push(snakeCase);    }
-	if (message.upperSnakeCase) { selectedCaseFunctions.push(constantCase); }
-	if (message.capitalCase)    { selectedCaseFunctions.push(capitalCase);  }
-	if (message.pathCase)       { selectedCaseFunctions.push(pathCase);     }
+	if (message.kebabCase)      { selectedCaseFunctions.push(paramCaseData); }
+	if (message.camelCase)      { selectedCaseFunctions.push(camelCaseData); }
+	if (message.pascalCase)     { selectedCaseFunctions.push(pascalCaseData); }
+	if (message.snakeCase)      { selectedCaseFunctions.push(snakeCaseData); }
+	if (message.upperSnakeCase) { selectedCaseFunctions.push(constantCaseData); }
+	if (message.capitalCase)    { selectedCaseFunctions.push(capitalCaseData); }
+	if (message.pathCase)       { selectedCaseFunctions.push(pathCaseData); }
 
 	if (selectedCaseFunctions.length <= 0) {
 		// If none selected, take all
 		selectedCaseFunctions = convertFunctions;
 	}
 
-	return buildRegexQuery(message.text, selectedCaseFunctions);
+	return buildRegexQuery(message.text, selectedCaseFunctions, message);
 }
 
 // Read string from context.workspaceState
@@ -82,6 +126,8 @@ function saveStatus(context: ExtensionContext, message: any) {
 
 	context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
 	context.workspaceState.update("wholeWord",         message.wholeWord);
+	context.workspaceState.update("caseBeginWord",     message.caseBeginWord);
+	context.workspaceState.update("caseEndWord",       message.caseEndWord);
 	context.workspaceState.update("text",              message.text);
 
 	context.workspaceState.update("kebabCase",         message.kebabCase);
@@ -254,8 +300,9 @@ class CaseSearchPanel {
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'main.js'));
 
 		// Uri to load styles into webview
-		const stylesResetUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'reset.css'));
-		const stylesMainUri  = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'vscode.css'));
+		const stylesResetUri  = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'reset.css'));
+		const stylesMainUri   = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'vscode.css'));
+		const stylesStylesUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'styles.css'));
 
 		// Use a nonce to only allow specific scripts to be run
 		const nonce = getNonce();
@@ -265,6 +312,9 @@ class CaseSearchPanel {
 		const incrementalSearchState = readCheckbox(context, "incrementalSearch", true);
 		const sensitiveCaseState     = readCheckbox(context, "sensitiveCase",     true);
 		const wholeWordState         = readCheckbox(context, "wholeWord");
+		const caseBeginWordState     = readCheckbox(context, "caseBeginWord");
+		const caseEndWordState       = readCheckbox(context, "caseEndWord");
+		const caseWholeWordState     = caseBeginWordState === caseEndWordState ? caseBeginWordState : "";
 		const text                   = readString(  context, "text");
 		const kebabCaseState         = readCheckbox(context, "kebabCase");
 		const camelCaseState         = readCheckbox(context, "camelCase");
@@ -287,8 +337,9 @@ class CaseSearchPanel {
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-				<link href="${stylesResetUri}" rel="stylesheet">
-				<link href="${stylesMainUri}" rel="stylesheet">
+				<link href="${stylesResetUri}"  rel="stylesheet">
+				<link href="${stylesMainUri}"   rel="stylesheet">
+				<link href="${stylesStylesUri}" rel="stylesheet">
 
 				<title>Case Search</title>
 			</head>
@@ -305,9 +356,12 @@ class CaseSearchPanel {
 				</fieldset>
 				<fieldset id="options">
 					<legend>Search</legend>
-					<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
 					<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case">Sensitive case</input></div>
+					<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
 					<div><input type="checkbox" ${wholeWordState}     id="whole-word">Whole word</input></div>
+					<div><input type="checkbox" ${caseWholeWordState} id="case-whole-word">Case whole word</input></div>
+					<div><input type="checkbox" ${caseBeginWordState} id="case-begin-word">Case begin word</input></div>
+					<div><input type="checkbox" ${caseEndWordState}   id="case-end-word">Case end word</input></div>
 				</fieldset>
 				<div><input type="checkbox" ${incrementalSearchState} id="incremental-search">Incremental search</input></div>
 				<button type="submit" id="okButton" ${okButtonState}>OK</button>
@@ -329,6 +383,8 @@ function getNonce() {
 
 // Exports for test only
 export const exportedForTesting = {
+	buildRegexExcludePreceded, buildRegexExcludeFollowed,
+	paramCaseData, pascalCaseData, constantCaseData, snakeCaseData, camelCaseData, capitalCaseData, pathCaseData,
 	buildRegexQuery,
 	messageToRegexQuery,
 };
