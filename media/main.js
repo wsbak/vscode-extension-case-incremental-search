@@ -9,7 +9,6 @@
     const sensitiveCase     = document.getElementById('sensitive-case');
     const wholeWord         = document.getElementById('whole-word');
     const caseWholeWord     = document.getElementById('case-whole-word');
-    const caseWholeWord_subCheckboxes = document.querySelectorAll('.case-whole-word-subCheckbox');
     const caseBeginWord     = document.getElementById('case-begin-word');
     const caseEndWord       = document.getElementById('case-end-word');
     const textToSearch      = document.getElementById('text-to-search');
@@ -20,6 +19,63 @@
     const upperSnakeCase    = document.getElementById('upper-snake-case');
     const capitalCase       = document.getElementById('capital-case');
     const pathCase          = document.getElementById('path-case');
+
+    // When 1 checkbox of a group becomes checked, all checkboxes ot the other group are unchecked
+    const exclusiveCheckboxGroupsArray = [
+        [[wholeWord], [caseWholeWord, caseBeginWord, caseEndWord]],  // wholeWord and any of caseXxxWord are incompatibles
+    ];
+
+    // When check/uncheck mainCheckbox  : all subCheckboxes are modified the same way
+    // When check/uncheck a subCheckbox : mainCheckbox.checked = all subCheckboxes are checked
+    const mainCheckboxSubCheckboxesArray = [
+        [caseWholeWord, [caseBeginWord, caseEndWord]],    // caseWholeWord = caseBeginWord & caseEndWord
+    ];
+
+    // If checkboxChanged is part of an exclusiveCheckboxGroups AND is checked
+    //  all checkboxes ot the other group are unchecked
+    function manageExclusiveCheckboxGroups(checkboxChanged) {
+        for (const exclusiveCheckboxGroups of exclusiveCheckboxGroupsArray) {
+            if (exclusiveCheckboxGroups[0].includes(checkboxChanged)) {
+                if (checkboxChanged?.checked) {
+                    for (const checkbox of exclusiveCheckboxGroups[1]) {
+                        checkbox.checked = false;
+                    }
+                }
+            }
+            if (exclusiveCheckboxGroups[1].includes(checkboxChanged)) {
+                if (checkboxChanged?.checked) {
+                    for (const checkbox of exclusiveCheckboxGroups[0]) {
+                        checkbox.checked = false;
+                    }
+                }
+            }
+        }
+    }
+
+    // If checkboxChanged is part of an mainCheckboxSubCheckboxes
+    // If checkboxChanged is mainCheckbox   : all subCheckboxes are modified the same way
+    //  If checkboxChanged is a subCheckbox : mainCheckbox.checked = all subCheckboxes are checked
+    function manageMainCheckboxSubCheckboxes(checkboxChanged) {
+        for (const mainCheckboxSubCheckboxes of mainCheckboxSubCheckboxesArray) {
+            if (mainCheckboxSubCheckboxes[0] === checkboxChanged) {
+                // Change all subCheckboxes
+                for (const checkbox of mainCheckboxSubCheckboxes[1]) {
+                    checkbox.checked = checkboxChanged?.checked;
+                }
+            }
+            else if (mainCheckboxSubCheckboxes[1].includes(checkboxChanged)) {
+                // Compute the mainCheckbox
+                const allChecked = [...mainCheckboxSubCheckboxes[1]].every(checkbox => checkbox.checked);
+                mainCheckboxSubCheckboxes[0].checked = allChecked;
+            }
+        }
+    }
+
+    // Manage dependencies
+    function manage(event) {
+        manageExclusiveCheckboxGroups(event.target);
+        manageMainCheckboxSubCheckboxes(event.target);
+    }
 
     // Focus on textToSearch at beginning
     textToSearch?.focus();
@@ -84,45 +140,19 @@
         }
     });
 
-    kebabCase?.     addEventListener('input', (event) => { searchIncremental(event); });
-    camelCase?.     addEventListener('input', (event) => { searchIncremental(event); });
-    pascalCase?.    addEventListener('input', (event) => { searchIncremental(event); });
-    snakeCase?.     addEventListener('input', (event) => { searchIncremental(event); });
-    upperSnakeCase?.addEventListener('input', (event) => { searchIncremental(event); });
-    capitalCase?.   addEventListener('input', (event) => { searchIncremental(event); });
-    pathCase?.      addEventListener('input', (event) => { searchIncremental(event); });
-    sensitiveCase?. addEventListener('input', (event) => { searchIncremental(event); });
-    textToSearch?.  addEventListener('input', (event) => { searchIncremental(event); });
-    // wholeWord and any of caseXxxWord are incompatibles
-    wholeWord?.     addEventListener('input', (event) => {
-        if (wholeWord?.checked) {
-            caseWholeWord.checked = false;
-            caseBeginWord.checked = false;
-            caseEndWord.checked   = false;
-        }
-        searchIncremental(event);
-    });
-    // caseWholeWord = caseBeginWord & caseEndWord
-    caseWholeWord?. addEventListener('input', (event) => {
-        if (caseWholeWord?.checked) {
-            wholeWord.checked = false;
-        }
-        caseWholeWord_subCheckboxes.forEach(checkbox => {
-            checkbox.checked = caseWholeWord?.checked;
-        });
-        searchIncremental(event);
-    });
-    caseWholeWord_subCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('input', function(event) {
-            if (checkbox?.checked) {
-                wholeWord.checked = false;
-            }
-            // Check if all subCheckboxes are checked
-            const allChecked = [...caseWholeWord_subCheckboxes].every(checkbox => checkbox.checked);
-            caseWholeWord.checked = allChecked;
-            searchIncremental(event);
-        });
-    });
+    kebabCase?.     addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    camelCase?.     addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    pascalCase?.    addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    snakeCase?.     addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    upperSnakeCase?.addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    capitalCase?.   addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    pathCase?.      addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    sensitiveCase?. addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    textToSearch?.  addEventListener('input', (event) => {                searchIncremental(event); });
+    wholeWord?.     addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    caseWholeWord?. addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    caseBeginWord?. addEventListener('input', (event) => { manage(event); searchIncremental(event); });
+    caseEndWord?.   addEventListener('input', (event) => { manage(event); searchIncremental(event); });
 
     // Handle messages sent from the extension to the webview
     window.addEventListener('message', event => {

@@ -359,8 +359,8 @@ class CaseSearchPanel {
 					<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
 					<div><input type="checkbox" ${wholeWordState}     id="whole-word">Whole word</input></div>
 					<div><input type="checkbox" ${caseWholeWordState} id="case-whole-word">Case whole word</input></div>
-					<div><input type="checkbox" ${caseBeginWordState} id="case-begin-word" class="case-whole-word-subCheckbox">Case begin word</input></div>
-					<div><input type="checkbox" ${caseEndWordState}   id="case-end-word"   class="case-whole-word-subCheckbox">Case end word</input></div>
+					<div><input type="checkbox" ${caseBeginWordState} id="case-begin-word">Case begin word</input></div>
+					<div><input type="checkbox" ${caseEndWordState}   id="case-end-word">Case end word</input></div>
 				</fieldset>
 				<div><input type="checkbox" ${incrementalSearchState} id="incremental-search">Incremental search</input></div>
 				<button type="submit" id="okButton" ${okButtonState}>OK</button>
