@@ -9,11 +9,10 @@ function buildRegexExclude(separator: string, preceded: boolean): string {
 		separator = "\\.";
 	}
 	const precededStr = preceded === true ? "<" : "";
-	// \p{L} = any letter, not only ascii/latin
 	// \d    = digit
-	return `(?${precededStr}![\\p{L}\\d${separator}])`;
+	return `(?${precededStr}![a-zA-Z\\d${separator}])`;
 
-	// ATTENTION
+	// \p{L} = any letter, not only ascii/latin
 	// xxxCase manage only ascii characters : see test('xxxCase'
 	// So using \p{L} seems strange/useless/contradictory
 }
