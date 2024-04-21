@@ -9,6 +9,7 @@
     const sensitiveCase     = document.getElementById('sensitive-case');
     const wholeWord         = document.getElementById('whole-word');
     const caseWholeWord     = document.getElementById('case-whole-word');
+    const caseWholeWord_subCheckboxes = document.querySelectorAll('.case-whole-word-subCheckbox');
     const caseBeginWord     = document.getElementById('case-begin-word');
     const caseEndWord       = document.getElementById('case-end-word');
     const textToSearch      = document.getElementById('text-to-search');
@@ -106,23 +107,21 @@
         if (caseWholeWord?.checked) {
             wholeWord.checked = false;
         }
-        caseBeginWord.checked = caseWholeWord?.checked;
-        caseEndWord.checked   = caseWholeWord?.checked;
+        caseWholeWord_subCheckboxes.forEach(checkbox => {
+            checkbox.checked = caseWholeWord?.checked;
+        });
         searchIncremental(event);
     });
-    caseBeginWord?. addEventListener('input', (event) => {
-        if (caseBeginWord?.checked) {
-            wholeWord.checked = false;
-        }
-        caseWholeWord.checked = caseBeginWord?.checked && caseEndWord?.checked;
-        searchIncremental(event);
-    });
-    caseEndWord?.   addEventListener('input', (event) => {
-        if (caseEndWord?.checked) {
-            wholeWord.checked = false;
-        }
-        caseWholeWord.checked = caseBeginWord?.checked && caseEndWord?.checked;
-        searchIncremental(event);
+    caseWholeWord_subCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('input', function(event) {
+            if (checkbox?.checked) {
+                wholeWord.checked = false;
+            }
+            // Check if all subCheckboxes are checked
+            const allChecked = [...caseWholeWord_subCheckboxes].every(checkbox => checkbox.checked);
+            caseWholeWord.checked = allChecked;
+            searchIncremental(event);
+        });
     });
 
     // Handle messages sent from the extension to the webview
