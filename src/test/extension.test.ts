@@ -92,9 +92,8 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(messageToRegexQuery(m(query1, "pascalCase,upperSnakeCase,pathCase")),
 							"OneTwoThreeFour|ONE_TWO_THREE_FOUR|one/two/three/four");
 
-		// No fonction selected, so apply all
-		assert.strictEqual(messageToRegexQuery(m(query1, "")),
-							"one-two-three-four|oneTwoThreeFour|OneTwoThreeFour|one_two_three_four|ONE_TWO_THREE_FOUR|One Two Three Four|one/two/three/four");
+		// No fonction/case selected, so no transformation
+		assert.strictEqual(messageToRegexQuery(m(query1, "")), query1);
 	});
 
 	// Regex options
@@ -304,5 +303,85 @@ suite('Extension Test Suite', () => {
 		// assert.deepStrictEqual(matchBegin("First-Héllo-Wo",         "snakeCase",      text), ["first_héllo_wo",         "First_Héllo_Wo",         "FIRST_HÉLLO_WO"]);
 		// assert.deepStrictEqual(matchEnd(         "éllo_World_Last", "snakeCase",      text), [       "éllo_world_last",        "éllo_World_Last",        "ÉLLO_WORLD_LAST"]);
 		// assert.deepStrictEqual(matchWhole("First/Héllo/World/Last", "snakeCase",      text), ["first_héllo_world_last", "First_Héllo_World_Last", "FIRST_HÉLLO_WORLD_LAST"]);
+	});
+
+	test('messageToRegexQuery_begin_end', () => {
+		const text = `
+		first.hello.world.last
+		First.Hello.World.Last
+		FIRST.HELLO.WORLD.LAST
+		
+		first-hello-world-last
+		First-Hello-World-Last
+		FIRST-HELLO-WORLD-LAST
+		
+		helloWorldLast
+		firstHelloWorldLast
+		FirstHelloWorldLast
+		FIRSTHELLOWORLDLAST
+		
+		first_hello_world_last
+		First_Hello_World_Last
+		FIRST_HELLO_WORLD_LAST
+
+		first_hell0_world_last
+		First_Hell0_World_Last
+		FIRST_HELL0_WORLD_LAST
+
+		first_héllo_world_last
+		First_Héllo_World_Last
+		FIRST_HÉLLO_WORLD_LAST
+
+		first hello world last
+		First Hello World Last
+		FIRST HELLO WORLD LAST
+		
+		first/hello/world/last
+		First/Hello/World/Last
+		FIRST/HELLO/WORLD/LAST
+		`;
+
+		// Match with beginWord using messageToRegexQuery
+		function matchBegin(query: string, text: string): any {
+			const message: Record<string, any> = buildMessage(query);
+			message.beginWord = true;
+			const regex = new RegExp(messageToRegexQuery(message), "gui");
+			return text.match(regex);
+		}
+
+		assert.deepStrictEqual(matchBegin( "irst-Hello-Wo", text), null);
+		assert.deepStrictEqual(matchBegin(      "Hello-Wo", text), [      "hello-wo",       "Hello-Wo",       "HELLO-WO"]);
+		assert.deepStrictEqual(matchBegin("First-Hello-Wo", text), ["first-hello-wo", "First-Hello-Wo", "FIRST-HELLO-WO"]);
+		assert.deepStrictEqual(matchBegin( "irst_Hello_Wo", text), null);
+		assert.deepStrictEqual(matchBegin(      "Hello_Wo", text), null);
+		assert.deepStrictEqual(matchBegin("First_Hello_Wo", text), ["first_hello_wo", "First_Hello_Wo", "FIRST_HELLO_WO"]);
+
+		// Match with endWord using messageToRegexQuery
+		function matchEnd(query: string, text: string): any {
+			const message: Record<string, any> = buildMessage(query);
+			message.endWord = true;
+			const regex = new RegExp(messageToRegexQuery(message), "gui");
+			return text.match(regex);
+		}
+
+		assert.deepStrictEqual(matchEnd("ello-World-Las",  text), null);
+		assert.deepStrictEqual(matchEnd("ello-World",      text), ["ello-world",      "ello-World",      "ELLO-WORLD"]);
+		assert.deepStrictEqual(matchEnd("ello-World-Last", text), ["ello-world-last", "ello-World-Last", "ELLO-WORLD-LAST"]);
+		assert.deepStrictEqual(matchEnd("ello_World_Las",  text), null);
+		assert.deepStrictEqual(matchEnd("ello_World",      text), null);
+		assert.deepStrictEqual(matchEnd("ello_World_Last", text), ["ello_world_last", "ello_World_Last", "ELLO_WORLD_LAST"]);
+
+		// Build message with beginWord & endWord
+		function msgWhole(query: string): any {
+			const message: Record<string, any> = buildMessage(query);
+			message.beginWord = true;
+			message.endWord = true;
+			return message;
+		}
+
+		// beginWord + endWord = wholeWord which is managed by vscode
+		// So no transformation and regex query = query
+		assert.deepStrictEqual(messageToRegexQuery(msgWhole("irst/Hello/World/La")), "irst/Hello/World/La");
+		assert.deepStrictEqual(messageToRegexQuery(msgWhole("irst_Hello_World")),    "irst_Hello_World");
 	});
 });

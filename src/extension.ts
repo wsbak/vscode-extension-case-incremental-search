@@ -48,12 +48,39 @@ function buildRegexQuery(query: string, selectedCaseFunctions: readonly any[], m
 	return removeDuplicates(queries).join("|");
 }
 
+// build regex query without any case selected
+function buildRegexQueryNoCaseSelected(query: string, message: any): string {
+	if (message.beginWord && message.endWord) {
+		// Managed by matchWholeWord
+		return query;
+	}
+
+	if (message.beginWord) {
+		query = "\\b" + query;
+	}
+	if (message.endWord) {
+		query = query + "\\b";
+	}
+
+	return query;
+}
+
 /**
  * Construct a copy of an array with duplicate items removed.
  * Where duplicate items exist, only the first instance will be kept.
  */
 function removeDuplicates<T>(array: T[]): T[] {
 	return [...new Set(array)];
+}
+
+// Return array[0] if all element's array have the same value
+// Return defaultValue otherwise
+function getAllSameValueOr<T>(array: T[], defaultValue: T): T {
+	const a = removeDuplicates(array);
+	if (a.length === 1) {
+		return a[0];
+	}
+	return defaultValue;
 }
 
 // Convert function with their separator
@@ -87,8 +114,7 @@ function messageToRegexQuery(message: any): string {
 	if (message.pathCase)       { selectedCaseFunctions.push(pathCaseData); }
 
 	if (selectedCaseFunctions.length <= 0) {
-		// If none selected, take all
-		selectedCaseFunctions = convertFunctions;
+		return buildRegexQueryNoCaseSelected(message.text, message);
 	}
 
 	return buildRegexQuery(message.text, selectedCaseFunctions, message);
@@ -124,7 +150,8 @@ function saveStatus(context: ExtensionContext, message: any) {
 	context.workspaceState.update("incrementalSearch", message.incrementalSearch);
 
 	context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
-	context.workspaceState.update("wholeWord",         message.wholeWord);
+	context.workspaceState.update("beginWord",         message.beginWord);
+	context.workspaceState.update("endWord",           message.endWord);
 	context.workspaceState.update("caseBeginWord",     message.caseBeginWord);
 	context.workspaceState.update("caseEndWord",       message.caseEndWord);
 	context.workspaceState.update("text",              message.text);
@@ -245,7 +272,7 @@ class CaseSearchPanel {
 							triggerSearch: true,
 							isRegex: true,
 							isCaseSensitive: message.sensitiveCase,
-							matchWholeWord: message.wholeWord,
+							matchWholeWord: message.beginWord && message.endWord,
 						});
 						saveStatus(CaseSearchPanel._context, message);
 						return;
@@ -256,7 +283,7 @@ class CaseSearchPanel {
 							triggerSearch: true,
 							isRegex: true,
 							isCaseSensitive: message.sensitiveCase,
-							matchWholeWord: message.wholeWord,
+							matchWholeWord: message.beginWord && message.endWord,
 						});
 						saveStatus(CaseSearchPanel._context, message);
 
@@ -310,10 +337,12 @@ class CaseSearchPanel {
 		const okButtonState          = readBoolean( context, "incrementalSearch", true) ? 'hidden' : 'visible"';
 		const incrementalSearchState = readCheckbox(context, "incrementalSearch", true);
 		const sensitiveCaseState     = readCheckbox(context, "sensitiveCase",     true);
-		const wholeWordState         = readCheckbox(context, "wholeWord");
+		const beginWordState         = readCheckbox(context, "beginWord");
+		const endWordState           = readCheckbox(context, "endWord");
+		const wholeWordState         = getAllSameValueOr([beginWordState, endWordState], "");
 		const caseBeginWordState     = readCheckbox(context, "caseBeginWord");
 		const caseEndWordState       = readCheckbox(context, "caseEndWord");
-		const caseWholeWordState     = caseBeginWordState === caseEndWordState ? caseBeginWordState : "";
+		const caseWholeWordState     = getAllSameValueOr([caseBeginWordState, caseEndWordState], "");
 		const text                   = readString(  context, "text");
 		const kebabCaseState         = readCheckbox(context, "kebabCase");
 		const camelCaseState         = readCheckbox(context, "camelCase");
@@ -322,6 +351,11 @@ class CaseSearchPanel {
 		const upperSnakeCaseState    = readCheckbox(context, "upperSnakeCase");
 		const capitalCaseState       = readCheckbox(context, "capitalCase");
 		const pathCaseState          = readCheckbox(context, "pathCase");
+		const allCasesState          = getAllSameValueOr([kebabCaseState,
+														  camelCaseState, pascalCaseState,
+														  snakeCaseState, upperSnakeCaseState,
+														  capitalCaseState,
+														  pathCaseState], "");
 	
 		return `<!DOCTYPE html>
 			<html lang="en">
@@ -344,21 +378,24 @@ class CaseSearchPanel {
 			</head>
 			<body>
 				<fieldset id="cases">
-					<legend>Cases to search for (none selected = all)</legend>
-					<div><input type="checkbox" ${kebabCaseState}      id="kebab-case">kebab-case</input></div>
-					<div><input type="checkbox" ${camelCaseState}      id="camel-case">camelCase</input></div>
-					<div><input type="checkbox" ${pascalCaseState}     id="pascal-case">PascalCase</input></div>
-					<div><input type="checkbox" ${snakeCaseState}      id="snake-case">snake_case</input></div>
-					<div><input type="checkbox" ${upperSnakeCaseState} id="upper-snake-case">UPPER_SNAKE_CASE</input></div>
-					<div><input type="checkbox" ${capitalCaseState}    id="capital-case">Capital Case</input></div>
-					<div><input type="checkbox" ${pathCaseState}       id="path-case">path/case</input></div>
+					<legend>Cases to search for</legend>
+					<div><input type="checkbox"                     ${allCasesState}       id="all-cases">All</input></div>
+					<div><input type="checkbox" class="subCheckbox" ${kebabCaseState}      id="kebab-case">kebab-case</input></div>
+					<div><input type="checkbox" class="subCheckbox" ${camelCaseState}      id="camel-case">camelCase</input></div>
+					<div><input type="checkbox" class="subCheckbox" ${pascalCaseState}     id="pascal-case">PascalCase</input></div>
+					<div><input type="checkbox" class="subCheckbox" ${snakeCaseState}      id="snake-case">snake_case</input></div>
+					<div><input type="checkbox" class="subCheckbox" ${upperSnakeCaseState} id="upper-snake-case">UPPER_SNAKE_CASE</input></div>
+					<div><input type="checkbox" class="subCheckbox" ${capitalCaseState}    id="capital-case">Capital Case</input></div>
+					<div><input type="checkbox" class="subCheckbox" ${pathCaseState}       id="path-case">path/case</input></div>
 				</fieldset>
 				<fieldset id="options">
 					<legend>Search</legend>
 					<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case">Sensitive case</input></div>
 					<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
-					<div><input type="checkbox" ${wholeWordState}     id="whole-word">Whole word</input></div>
-					<div><input type="checkbox" ${caseWholeWordState} id="case-whole-word">Case whole word</input></div>
+					<div><input type="checkbox" ${wholeWordState}     id="whole-word"                    >Whole word</input></div>
+					<div><input type="checkbox" ${beginWordState}     id="begin-word" class="subCheckbox">Begin word</input></div>
+					<div><input type="checkbox" ${endWordState}       id="end-word"   class="subCheckbox">End word</input></div>
+					<div><input type="checkbox" ${caseWholeWordState} id="case-whole-word"                    >Case whole word</input></div>
 					<div><input type="checkbox" ${caseBeginWordState} id="case-begin-word" class="subCheckbox">Case begin word</input></div>
 					<div><input type="checkbox" ${caseEndWordState}   id="case-end-word"   class="subCheckbox">Case end word</input></div>
 				</fieldset>
