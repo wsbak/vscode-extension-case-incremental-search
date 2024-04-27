@@ -207,7 +207,7 @@ class CaseSearchPanel {
 
 	public static readonly viewType = 'caseSearch';
 
-	private static _context: ExtensionContext;
+	private _context: ExtensionContext;
 	private readonly _panel: vscode.WebviewPanel;
 	private readonly _extensionUri: vscode.Uri;
 	private _disposables: vscode.Disposable[] = [];
@@ -240,7 +240,7 @@ class CaseSearchPanel {
 
 	private constructor(panel: vscode.WebviewPanel, context: ExtensionContext) {
 		this._panel = panel;
-		CaseSearchPanel._context = context;
+		this._context = context;
 		this._extensionUri = context.extensionUri;
 
 		// Set the webview's initial html content
@@ -274,7 +274,7 @@ class CaseSearchPanel {
 							isCaseSensitive: message.sensitiveCase,
 							matchWholeWord: message.beginWord && message.endWord,
 						});
-						saveStatus(CaseSearchPanel._context, message);
+						saveStatus(this._context, message);
 						return;
 					case 'text-to-search': {
 						console.log("text-to-search received", message.text);
@@ -285,7 +285,7 @@ class CaseSearchPanel {
 							isCaseSensitive: message.sensitiveCase,
 							matchWholeWord: message.beginWord && message.endWord,
 						});
-						saveStatus(CaseSearchPanel._context, message);
+						saveStatus(this._context, message);
 
 						// Set the focus back to the input
 						this._panel.webview.postMessage({ command: 'focus' });
@@ -333,7 +333,7 @@ class CaseSearchPanel {
 		// Use a nonce to only allow specific scripts to be run
 		const nonce = getNonce();
 
-		const context = CaseSearchPanel._context;
+		const context = this._context;
 		const okButtonState          = readBoolean( context, "incrementalSearch", true) ? 'hidden' : 'visible"';
 		const incrementalSearchState = readCheckbox(context, "incrementalSearch", true);
 		const sensitiveCaseState     = readCheckbox(context, "sensitiveCase",     true);
