@@ -421,6 +421,6 @@ function getNonce() {
 export const exportedForTesting = {
 	buildRegexExcludePreceded, buildRegexExcludeFollowed,
 	paramCaseData, pascalCaseData, constantCaseData, snakeCaseData, camelCaseData, capitalCaseData, pathCaseData,
-	buildRegexQuery,
+	buildRegexQuery, buildRegexQueryNoCaseSelected,
 	messageToRegexQuery,
 };

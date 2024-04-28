@@ -4,13 +4,15 @@ import { paramCase, pascalCase, constantCase, snakeCase, camelCase, capitalCase,
 
 import { exportedForTesting } from '../extension';
 const { paramCaseData, pascalCaseData, constantCaseData, snakeCaseData, camelCaseData, capitalCaseData, pathCaseData } = exportedForTesting;
-const { buildRegexQuery, messageToRegexQuery } = exportedForTesting;
+const { buildRegexQuery, buildRegexQueryNoCaseSelected, messageToRegexQuery } = exportedForTesting;
 
 
 // Build a message for transformQuery2RegExp & buildRegexQuery
-function buildMessage(query: string = "", selectedCases: string = ""): any {
+function buildMessage(query: string = "", booleanNames: string = ""): any {
 	const message: Record<string, any> = {
-		// for buildRegexQuery (and so for transformQuery2RegExp) 
+		// for buildRegexQuery... (and so for transformQuery2RegExp) 
+		beginWord: false,
+		endWord: false,
 		caseBeginWord: false,
 		caseEndWord: false,
 		// only for transformQuery2RegExp
@@ -24,11 +26,19 @@ function buildMessage(query: string = "", selectedCases: string = ""): any {
 		pathCase: false,
 	};
 	type ObjectKey = keyof typeof message;
-	for (const selectedCase of selectedCases.split(/,/)) {
-		message[selectedCase as ObjectKey] = true;
+	for (const booleanName of booleanNames.split(/[, ]/)) {
+		message[booleanName as ObjectKey] = true;
 	}
 	return message;
 }
+
+// Alias
+function msgBeginWord(query: string = ""): any { return buildMessage(query, "beginWord"); }
+function msgEndWord(  query: string = ""): any { return buildMessage(query, "endWord"); }
+function msgWholeWord(query: string = ""): any { return buildMessage(query, "beginWord,endWord"); }
+function msgCaseBeginWord(query: string = "", bns: string = ""): any { return buildMessage(query, "caseBeginWord,"+bns); }
+function msgCaseEndWord(  query: string = "", bns: string = ""): any { return buildMessage(query, "caseEndWord,"+bns); }
+function msgCaseWholeWord(query: string = "", bns: string = ""): any { return buildMessage(query, "caseBeginWord,caseEndWord,"+bns); }
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
@@ -62,6 +72,16 @@ suite('Extension Test Suite', () => {
 		// Duplicates are removed
 		assert.strictEqual(buildRegexQuery(query, [pascalCaseData, constantCaseData, pascalCaseData], message),
 							"OneTwoThreeFour|ONE_TWO_THREE_FOUR");
+	});
+
+	test('buildRegexQueryNoCaseSelected', () => {
+		const query = "one two_three-Four";
+		assert.strictEqual(buildRegexQueryNoCaseSelected(query, buildMessage()),         query);
+		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msgBeginWord()), "\\b" + query);
+		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msgEndWord()),           query + "\\b");
+		// beginWord + endWord = wholeWord which is managed by vscode
+		// So no transformation and regex query = query
+		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msgWholeWord()),         query);
 	});
 
 	test('transformQuery2RegExp', () => {
@@ -238,9 +258,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with caseBeginWord using messageToRegexQuery
 		function matchBegin(query: string, selectedCases: string, text: string): any {
-			const message: Record<string, any> = buildMessage(query, selectedCases);
-			message.caseBeginWord = true;
-			const regex = new RegExp(messageToRegexQuery(message), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgCaseBeginWord(query, selectedCases)), "gui");
 			return text.match(regex);
 		}
 
@@ -256,9 +274,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with caseEndWord using messageToRegexQuery
 		function matchEnd(query: string, selectedCases: string, text: string): any {
-			const message: Record<string, any> = buildMessage(query, selectedCases);
-			message.caseEndWord = true;
-			const regex = new RegExp(messageToRegexQuery(message), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgCaseEndWord(query, selectedCases)), "gui");
 			return text.match(regex);
 		}
 
@@ -274,10 +290,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with caseBeginWord & caseEndWord using messageToRegexQuery
 		function matchWhole(query: string, selectedCases: string, text: string): any {
-			const message: Record<string, any> = buildMessage(query, selectedCases);
-			message.caseBeginWord = true;
-			message.caseEndWord = true;
-			const regex = new RegExp(messageToRegexQuery(message), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgCaseWholeWord(query, selectedCases)), "gui");
 			return text.match(regex);
 		}
 
@@ -343,9 +356,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with beginWord using messageToRegexQuery
 		function matchBegin(query: string, text: string): any {
-			const message: Record<string, any> = buildMessage(query);
-			message.beginWord = true;
-			const regex = new RegExp(messageToRegexQuery(message), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgBeginWord(query)), "gui");
 			return text.match(regex);
 		}
 
@@ -358,9 +369,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with endWord using messageToRegexQuery
 		function matchEnd(query: string, text: string): any {
-			const message: Record<string, any> = buildMessage(query);
-			message.endWord = true;
-			const regex = new RegExp(messageToRegexQuery(message), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgEndWord(query)), "gui");
 			return text.match(regex);
 		}
 
@@ -371,17 +380,9 @@ suite('Extension Test Suite', () => {
 		assert.deepStrictEqual(matchEnd("ello_World",      text), null);
 		assert.deepStrictEqual(matchEnd("ello_World_Last", text), ["ello_world_last", "ello_World_Last", "ELLO_WORLD_LAST"]);
 
-		// Build message with beginWord & endWord
-		function msgWhole(query: string): any {
-			const message: Record<string, any> = buildMessage(query);
-			message.beginWord = true;
-			message.endWord = true;
-			return message;
-		}
-
 		// beginWord + endWord = wholeWord which is managed by vscode
 		// So no transformation and regex query = query
-		assert.deepStrictEqual(messageToRegexQuery(msgWhole("irst/Hello/World/La")), "irst/Hello/World/La");
-		assert.deepStrictEqual(messageToRegexQuery(msgWhole("irst_Hello_World")),    "irst_Hello_World");
+		assert.deepStrictEqual(messageToRegexQuery(msgWholeWord("irst/Hello/World/La")), "irst/Hello/World/La");
+		assert.deepStrictEqual(messageToRegexQuery(msgWholeWord("irst_Hello_World")),    "irst_Hello_World");
 	});
 });
