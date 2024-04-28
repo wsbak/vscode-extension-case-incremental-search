@@ -8,7 +8,8 @@ const { buildRegexQuery, buildRegexQueryNoCaseSelected, messageToRegexQuery } = 
 
 
 // Build a message for transformQuery2RegExp & buildRegexQuery
-function buildMessage(query: string = "", booleanNames: string = ""): any {
+// booleanNames specifies the "field1,field2,...,fieldn" to set to true
+function msg(query: string = "", booleanNames: string = ""): any {
 	const message: Record<string, any> = {
 		// for buildRegexQuery... (and so for transformQuery2RegExp) 
 		beginWord: false,
@@ -33,50 +34,49 @@ function buildMessage(query: string = "", booleanNames: string = ""): any {
 }
 
 // Alias
-function msgBeginWord(query: string = ""): any { return buildMessage(query, "beginWord"); }
-function msgEndWord(  query: string = ""): any { return buildMessage(query, "endWord"); }
-function msgWholeWord(query: string = ""): any { return buildMessage(query, "beginWord,endWord"); }
-function msgCaseBeginWord(query: string = "", bns: string = ""): any { return buildMessage(query, "caseBeginWord,"+bns); }
-function msgCaseEndWord(  query: string = "", bns: string = ""): any { return buildMessage(query, "caseEndWord,"+bns); }
-function msgCaseWholeWord(query: string = "", bns: string = ""): any { return buildMessage(query, "caseBeginWord,caseEndWord,"+bns); }
+function msgBeginWord(query: string = ""): any { return msg(query, "beginWord"); }
+function msgEndWord(  query: string = ""): any { return msg(query, "endWord"); }
+function msgWholeWord(query: string = ""): any { return msg(query, "beginWord,endWord"); }
+function msgCaseBeginWord(query: string = "", bns: string = ""): any { return msg(query, "caseBeginWord,"+bns); }
+function msgCaseEndWord(  query: string = "", bns: string = ""): any { return msg(query, "caseEndWord,"+bns); }
+function msgCaseWholeWord(query: string = "", bns: string = ""): any { return msg(query, "caseBeginWord,caseEndWord,"+bns); }
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
 
 	test('buildRegexQuery', () => {
 		const query = "one two_three-Four";
-		const message = buildMessage();
 
-		assert.strictEqual(buildRegexQuery(query, [], message), "");
+		assert.strictEqual(buildRegexQuery(query, [], msg()), "");
 
-		assert.strictEqual(buildRegexQuery(query, [paramCaseData],    message), "one-two-three-four");
-		assert.strictEqual(buildRegexQuery(query, [camelCaseData],    message), "oneTwoThreeFour");
-		assert.strictEqual(buildRegexQuery(query, [pascalCaseData],   message), "OneTwoThreeFour");
-		assert.strictEqual(buildRegexQuery(query, [snakeCaseData],    message), "one_two_three_four");
-		assert.strictEqual(buildRegexQuery(query, [constantCaseData], message), "ONE_TWO_THREE_FOUR");
-		assert.strictEqual(buildRegexQuery(query, [capitalCaseData],  message), "One Two Three Four");
-		assert.strictEqual(buildRegexQuery(query, [pathCaseData],     message), "one/two/three/four");
+		assert.strictEqual(buildRegexQuery(query, [paramCaseData],    msg()), "one-two-three-four");
+		assert.strictEqual(buildRegexQuery(query, [camelCaseData],    msg()), "oneTwoThreeFour");
+		assert.strictEqual(buildRegexQuery(query, [pascalCaseData],   msg()), "OneTwoThreeFour");
+		assert.strictEqual(buildRegexQuery(query, [snakeCaseData],    msg()), "one_two_three_four");
+		assert.strictEqual(buildRegexQuery(query, [constantCaseData], msg()), "ONE_TWO_THREE_FOUR");
+		assert.strictEqual(buildRegexQuery(query, [capitalCaseData],  msg()), "One Two Three Four");
+		assert.strictEqual(buildRegexQuery(query, [pathCaseData],     msg()), "one/two/three/four");
 
-		assert.strictEqual(buildRegexQuery(query, [paramCaseData, camelCaseData], message),
+		assert.strictEqual(buildRegexQuery(query, [paramCaseData, camelCaseData], msg()),
 							"one-two-three-four|oneTwoThreeFour");
 
-		assert.strictEqual(buildRegexQuery(query, [camelCaseData, capitalCaseData], message),
+		assert.strictEqual(buildRegexQuery(query, [camelCaseData, capitalCaseData], msg()),
 							"oneTwoThreeFour|One Two Three Four");
 
-		assert.strictEqual(buildRegexQuery(query, [pascalCaseData, snakeCaseData, constantCaseData], message),
+		assert.strictEqual(buildRegexQuery(query, [pascalCaseData, snakeCaseData, constantCaseData], msg()),
 							"OneTwoThreeFour|one_two_three_four|ONE_TWO_THREE_FOUR");
 
-		assert.strictEqual(buildRegexQuery(query, [pascalCaseData, snakeCaseData, constantCaseData, camelCaseData, paramCaseData], message),
+		assert.strictEqual(buildRegexQuery(query, [pascalCaseData, snakeCaseData, constantCaseData, camelCaseData, paramCaseData], msg()),
 							"OneTwoThreeFour|one_two_three_four|ONE_TWO_THREE_FOUR|oneTwoThreeFour|one-two-three-four");
 
 		// Duplicates are removed
-		assert.strictEqual(buildRegexQuery(query, [pascalCaseData, constantCaseData, pascalCaseData], message),
+		assert.strictEqual(buildRegexQuery(query, [pascalCaseData, constantCaseData, pascalCaseData], msg()),
 							"OneTwoThreeFour|ONE_TWO_THREE_FOUR");
 	});
 
 	test('buildRegexQueryNoCaseSelected', () => {
 		const query = "one two_three-Four";
-		assert.strictEqual(buildRegexQueryNoCaseSelected(query, buildMessage()),         query);
+		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msg()),                  query);
 		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msgBeginWord()), "\\b" + query);
 		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msgEndWord()),           query + "\\b");
 		// beginWord + endWord = wholeWord which is managed by vscode
@@ -85,35 +85,32 @@ suite('Extension Test Suite', () => {
 	});
 
 	test('transformQuery2RegExp', () => {
-		// Build a message for transformQuery2RegExp
-		const m = buildMessage;
-
 		const query1 = "one two_three-Four";
 		const query2 = "oneTwoThreeFour";
 
-		assert.strictEqual(messageToRegexQuery(m(query1, "kebabCase")),      "one-two-three-four");
-		assert.strictEqual(messageToRegexQuery(m(query2, "kebabCase")),      "one-two-three-four");
-		assert.strictEqual(messageToRegexQuery(m(query1, "camelCase")),      "oneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(m(query2, "camelCase")),      "oneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(m(query1, "pascalCase")),     "OneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(m(query2, "pascalCase")),     "OneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(m(query1, "snakeCase")),      "one_two_three_four");
-		assert.strictEqual(messageToRegexQuery(m(query2, "snakeCase")),      "one_two_three_four");
-		assert.strictEqual(messageToRegexQuery(m(query1, "upperSnakeCase")), "ONE_TWO_THREE_FOUR");
-		assert.strictEqual(messageToRegexQuery(m(query2, "upperSnakeCase")), "ONE_TWO_THREE_FOUR");
-		assert.strictEqual(messageToRegexQuery(m(query1, "capitalCase")),    "One Two Three Four");
-		assert.strictEqual(messageToRegexQuery(m(query2, "capitalCase")),    "One Two Three Four");
-		assert.strictEqual(messageToRegexQuery(m(query1, "pathCase")),       "one/two/three/four");
-		assert.strictEqual(messageToRegexQuery(m(query2, "pathCase")),       "one/two/three/four");
+		assert.strictEqual(messageToRegexQuery(msg(query1, "kebabCase")),      "one-two-three-four");
+		assert.strictEqual(messageToRegexQuery(msg(query2, "kebabCase")),      "one-two-three-four");
+		assert.strictEqual(messageToRegexQuery(msg(query1, "camelCase")),      "oneTwoThreeFour");
+		assert.strictEqual(messageToRegexQuery(msg(query2, "camelCase")),      "oneTwoThreeFour");
+		assert.strictEqual(messageToRegexQuery(msg(query1, "pascalCase")),     "OneTwoThreeFour");
+		assert.strictEqual(messageToRegexQuery(msg(query2, "pascalCase")),     "OneTwoThreeFour");
+		assert.strictEqual(messageToRegexQuery(msg(query1, "snakeCase")),      "one_two_three_four");
+		assert.strictEqual(messageToRegexQuery(msg(query2, "snakeCase")),      "one_two_three_four");
+		assert.strictEqual(messageToRegexQuery(msg(query1, "upperSnakeCase")), "ONE_TWO_THREE_FOUR");
+		assert.strictEqual(messageToRegexQuery(msg(query2, "upperSnakeCase")), "ONE_TWO_THREE_FOUR");
+		assert.strictEqual(messageToRegexQuery(msg(query1, "capitalCase")),    "One Two Three Four");
+		assert.strictEqual(messageToRegexQuery(msg(query2, "capitalCase")),    "One Two Three Four");
+		assert.strictEqual(messageToRegexQuery(msg(query1, "pathCase")),       "one/two/three/four");
+		assert.strictEqual(messageToRegexQuery(msg(query2, "pathCase")),       "one/two/three/four");
 
 		// Multiple functions selected
-		assert.strictEqual(messageToRegexQuery(m(query1, "kebabCase,camelCase")),
+		assert.strictEqual(messageToRegexQuery(msg(query1, "kebabCase,camelCase")),
 							"one-two-three-four|oneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(m(query1, "pascalCase,upperSnakeCase,pathCase")),
+		assert.strictEqual(messageToRegexQuery(msg(query1, "pascalCase,upperSnakeCase,pathCase")),
 							"OneTwoThreeFour|ONE_TWO_THREE_FOUR|one/two/three/four");
 
 		// No fonction/case selected, so no transformation
-		assert.strictEqual(messageToRegexQuery(m(query1, "")), query1);
+		assert.strictEqual(messageToRegexQuery(msg(query1, "")), query1);
 	});
 
 	// Regex options
@@ -197,7 +194,7 @@ suite('Extension Test Suite', () => {
 
 		// Match using messageToRegexQuery
 		function match(query: string, selectedCases: string, text: string): any {
-			const message: Record<string, any> = buildMessage(query, selectedCases);
+			const message: Record<string, any> = msg(query, selectedCases);
 			const regex = new RegExp(messageToRegexQuery(message), "gui");
 			return text.match(regex);
 		}
