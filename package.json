@@ -44,7 +44,8 @@
 		"watch-tests": "tsc -p . -w --outDir out",
 		"pretest": "npm run compile-tests && npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
-		"test": "vscode-test"
+		"test": "vscode-test",
+		"ui-test": "npm run compile-tests && extest setup-and-run './out/test/**/*.test.js' -u -i -r . -e ./test-extensions"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.2.0",

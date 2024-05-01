@@ -4,6 +4,7 @@ out/**
 node_modules/**
 src/**
 resources_work/**
+test-extensions/**
 .gitignore
 .yarnrc
 webpack.config.js
