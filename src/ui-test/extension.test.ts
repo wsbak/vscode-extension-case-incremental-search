@@ -99,7 +99,7 @@ describe('WebViews', function () {
                 expect(await elt.getAttribute('type')).has.string('checkbox');
                 expect(await elt.isDisplayed()).equals(true);
                 expect(await elt.isEnabled()).equals(true);
-                expect(await elt.isSelected()).equals(false);
+                expect(await elt.isSelected()).equals(true);
             }
         });
 

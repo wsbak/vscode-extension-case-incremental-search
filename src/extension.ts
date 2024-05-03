@@ -344,13 +344,13 @@ class CaseSearchPanel {
 		const caseEndWordState       = readCheckbox(context, "caseEndWord");
 		const caseWholeWordState     = getAllSameValueOr([caseBeginWordState, caseEndWordState], "");
 		const text                   = readString(  context, "text");
-		const kebabCaseState         = readCheckbox(context, "kebabCase");
-		const camelCaseState         = readCheckbox(context, "camelCase");
-		const pascalCaseState        = readCheckbox(context, "pascalCase");
-		const snakeCaseState         = readCheckbox(context, "snakeCase");
-		const upperSnakeCaseState    = readCheckbox(context, "upperSnakeCase");
-		const capitalCaseState       = readCheckbox(context, "capitalCase");
-		const pathCaseState          = readCheckbox(context, "pathCase");
+		const kebabCaseState         = readCheckbox(context, "kebabCase",      true);
+		const camelCaseState         = readCheckbox(context, "camelCase",      true);
+		const pascalCaseState        = readCheckbox(context, "pascalCase",     true);
+		const snakeCaseState         = readCheckbox(context, "snakeCase",      true);
+		const upperSnakeCaseState    = readCheckbox(context, "upperSnakeCase", true);
+		const capitalCaseState       = readCheckbox(context, "capitalCase",    true);
+		const pathCaseState          = readCheckbox(context, "pathCase",       true);
 		const allCasesState          = getAllSameValueOr([kebabCaseState,
 														  camelCaseState, pascalCaseState,
 														  snakeCaseState, upperSnakeCaseState,
