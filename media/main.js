@@ -85,6 +85,15 @@
         }
     }
 
+    // Compute/update the main checkboxes
+    function initializeMainCheckboxSubCheckboxes() {
+        for (const mainCheckboxSubCheckboxes of mainCheckboxSubCheckboxesArray) {
+            // Compute the mainCheckbox
+            const allChecked = [...mainCheckboxSubCheckboxes[1]].every(checkbox => checkbox.checked);
+            mainCheckboxSubCheckboxes[0].checked = allChecked;
+        }
+    }
+
     // Returns undefined if checkboxChanged is not part of checkboxGroupIfAnyArray
     // Returns true      if any checkbox of checkboxGroupIfAnyArray is checked
     // Returns false     othewise
@@ -100,6 +109,8 @@
     }
 
     // Hide or show checkbox
+    // Currenty disable/enable and not hide/show
+    //  because the label of the checkbox is still visible
     function hideCheckbox(checkbox, hide) {
         if (hide) {
             checkbox.disabled = true;
@@ -109,6 +120,16 @@
         }
     }
 
+    // Hide or show button
+    function hideButton(button, hide) {
+        if (hide) {
+            button?.setAttribute('hidden', 'hidden');
+        }
+        else {
+            button?.removeAttribute('hidden');
+        }
+    }
+    
     function manageHideShowCheckboxGroupIfAny(checkboxChanged) {
         for (const hideCheckboxGroupIfAny of hideCheckboxGroupIfAnyArray) {
             const anyChecked = computeHideShowCheckboxGroupIfAny(checkboxChanged, hideCheckboxGroupIfAny[1]);
@@ -128,12 +149,37 @@
         }
     }
 
+    // Compute/update the visibilities of the checkboxes
+    function initializeHideShowCheckboxGroupIfAny() {
+        for (const hideCheckboxGroupIfAny of hideCheckboxGroupIfAnyArray) {
+            const noneChecked = [...hideCheckboxGroupIfAny[1]].every(checkbox => checkbox.checked !== true);
+            const anyChecked = noneChecked !== true;
+            for (const checkbox of hideCheckboxGroupIfAny[0]) {
+                hideCheckbox(checkbox, anyChecked);
+            }
+        }
+        for (const showCheckboxGroupIfAny of showCheckboxGroupIfAnyArray) {
+            const noneChecked = [...showCheckboxGroupIfAny[1]].every(checkbox => checkbox.checked !== true);
+            for (const checkbox of showCheckboxGroupIfAny[0]) {
+                hideCheckbox(checkbox, noneChecked);
+            }
+        }
+    }
+
     // Manage dependencies
     function manage(event) {
         manageExclusiveCheckboxGroups(event.target);
         manageMainCheckboxSubCheckboxes(event.target);
         manageHideShowCheckboxGroupIfAny(event.target);
+
+        // When incrementalSearch, okButton is useless
+        hideButton(okButton, incrementalSearch?.checked)
     }
+
+    // Compute dependencies
+    initializeMainCheckboxSubCheckboxes();
+    initializeHideShowCheckboxGroupIfAny();
+    manage(incrementalSearch);
 
     // Focus on textToSearch at beginning
     textToSearch?.focus();
@@ -171,6 +217,7 @@
         if (!incrementalSearch?.checked) {
             console.log("input but not incrementalSearch");
             focusItem = undefined;
+            sendSearchCommand('saveStatus');
             return;
         }
     
@@ -189,15 +236,7 @@
         }
     });
 
-    incrementalSearch?.addEventListener('input', (event) => {
-        // When incrementalSearch, okButton is useless
-        if (incrementalSearch?.checked) {
-            okButton?.setAttribute('hidden', 'hidden');
-        }
-        else {
-            okButton?.removeAttribute('hidden');
-        }
-    });
+    incrementalSearch?.addEventListener('input', (event) => { manage(event); searchIncremental(event); });
 
     allCases?.      addEventListener('input', (event) => { manage(event); searchIncremental(event); });
     kebabCase?.     addEventListener('input', (event) => { manage(event); searchIncremental(event); });

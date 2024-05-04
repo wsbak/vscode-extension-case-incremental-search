@@ -73,16 +73,6 @@ function removeDuplicates<T>(array: T[]): T[] {
 	return [...new Set(array)];
 }
 
-// Return array[0] if all element's array have the same value
-// Return defaultValue otherwise
-function getAllSameValueOr<T>(array: T[], defaultValue: T): T {
-	const a = removeDuplicates(array);
-	if (a.length === 1) {
-		return a[0];
-	}
-	return defaultValue;
-}
-
 // Convert function with their separator
 const paramCaseData:    any[] = [paramCase,    "-"];
 const camelCaseData:    any[] = [camelCase,    ""];
@@ -265,6 +255,10 @@ class CaseSearchPanel {
 		this._panel.webview.onDidReceiveMessage(
 			message => {
 				switch (message.command) {
+					case 'saveStatus':
+						console.log("saveStatus received");
+						saveStatus(this._context, message);
+						return;
 					case 'okButton':
 						console.log("okButton received");
 						vscode.commands.executeCommand("workbench.action.findInFiles", {
@@ -334,15 +328,15 @@ class CaseSearchPanel {
 		const nonce = getNonce();
 
 		const context = this._context;
-		const okButtonState          = readBoolean( context, "incrementalSearch", true) ? 'hidden' : 'visible"';
+		// okButtonState computed by main.js
 		const incrementalSearchState = readCheckbox(context, "incrementalSearch", true);
 		const sensitiveCaseState     = readCheckbox(context, "sensitiveCase",     true);
 		const beginWordState         = readCheckbox(context, "beginWord");
 		const endWordState           = readCheckbox(context, "endWord");
-		const wholeWordState         = getAllSameValueOr([beginWordState, endWordState], "");
+		// wholeWordState computed by main.js
 		const caseBeginWordState     = readCheckbox(context, "caseBeginWord");
 		const caseEndWordState       = readCheckbox(context, "caseEndWord");
-		const caseWholeWordState     = getAllSameValueOr([caseBeginWordState, caseEndWordState], "");
+		// caseWholeWordState computed by main.js
 		const text                   = readString(  context, "text");
 		const kebabCaseState         = readCheckbox(context, "kebabCase",      true);
 		const camelCaseState         = readCheckbox(context, "camelCase",      true);
@@ -351,11 +345,7 @@ class CaseSearchPanel {
 		const upperSnakeCaseState    = readCheckbox(context, "upperSnakeCase", true);
 		const capitalCaseState       = readCheckbox(context, "capitalCase",    true);
 		const pathCaseState          = readCheckbox(context, "pathCase",       true);
-		const allCasesState          = getAllSameValueOr([kebabCaseState,
-														  camelCaseState, pascalCaseState,
-														  snakeCaseState, upperSnakeCaseState,
-														  capitalCaseState,
-														  pathCaseState], "");
+		// allCasesState computed by main.js
 	
 		return `<!DOCTYPE html>
 			<html lang="en">
@@ -379,7 +369,7 @@ class CaseSearchPanel {
 			<body>
 				<fieldset id="cases">
 					<legend>Cases to search for</legend>
-					<div><input type="checkbox"                     ${allCasesState}       id="all-cases">All</input></div>
+					<div><input type="checkbox"                                            id="all-cases">All</input></div>
 					<div><input type="checkbox" class="subCheckbox" ${kebabCaseState}      id="kebab-case">kebab-case</input></div>
 					<div><input type="checkbox" class="subCheckbox" ${camelCaseState}      id="camel-case">camelCase</input></div>
 					<div><input type="checkbox" class="subCheckbox" ${pascalCaseState}     id="pascal-case">PascalCase</input></div>
@@ -392,15 +382,15 @@ class CaseSearchPanel {
 					<legend>Search</legend>
 					<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case">Sensitive case</input></div>
 					<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
-					<div><input type="checkbox" ${wholeWordState}     id="whole-word"                    >Whole word</input></div>
+					<div><input type="checkbox"                       id="whole-word"                    >Whole word</input></div>
 					<div><input type="checkbox" ${beginWordState}     id="begin-word" class="subCheckbox">Begin word</input></div>
 					<div><input type="checkbox" ${endWordState}       id="end-word"   class="subCheckbox">End word</input></div>
-					<div><input type="checkbox" ${caseWholeWordState} id="case-whole-word"                    >Case whole word</input></div>
+					<div><input type="checkbox"                       id="case-whole-word"                    >Case whole word</input></div>
 					<div><input type="checkbox" ${caseBeginWordState} id="case-begin-word" class="subCheckbox">Case begin word</input></div>
 					<div><input type="checkbox" ${caseEndWordState}   id="case-end-word"   class="subCheckbox">Case end word</input></div>
 				</fieldset>
 				<div><input type="checkbox" ${incrementalSearchState} id="incremental-search">Incremental search</input></div>
-				<button type="submit" id="okButton" ${okButtonState}>OK</button>
+				<button type="submit" id="okButton">OK</button>
 
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
