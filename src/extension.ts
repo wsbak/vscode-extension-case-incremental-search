@@ -369,27 +369,27 @@ class CaseSearchPanel {
 			<body>
 				<fieldset id="cases">
 					<legend>Cases to search for</legend>
-					<div><input type="checkbox"                                            id="all-cases">All</input></div>
-					<div><input type="checkbox" class="subCheckbox" ${kebabCaseState}      id="kebab-case">kebab-case</input></div>
-					<div><input type="checkbox" class="subCheckbox" ${camelCaseState}      id="camel-case">camelCase</input></div>
-					<div><input type="checkbox" class="subCheckbox" ${pascalCaseState}     id="pascal-case">PascalCase</input></div>
-					<div><input type="checkbox" class="subCheckbox" ${snakeCaseState}      id="snake-case">snake_case</input></div>
-					<div><input type="checkbox" class="subCheckbox" ${upperSnakeCaseState} id="upper-snake-case">UPPER_SNAKE_CASE</input></div>
-					<div><input type="checkbox" class="subCheckbox" ${capitalCaseState}    id="capital-case">Capital Case</input></div>
-					<div><input type="checkbox" class="subCheckbox" ${pathCaseState}       id="path-case">path/case</input></div>
+					<div><input type="checkbox"                                            id="all-cases"        /> <label for="all-case"        >All</label></div>
+					<div><input type="checkbox" class="subCheckbox" ${kebabCaseState}      id="kebab-case"       /> <label for="kebab-case"      >kebab-case</label></div>
+					<div><input type="checkbox" class="subCheckbox" ${camelCaseState}      id="camel-case"       /> <label for="camel-case"      >camelCase</label></div>
+					<div><input type="checkbox" class="subCheckbox" ${pascalCaseState}     id="pascal-case"      /> <label for="pascal-case"     >PascalCase</label></div>
+					<div><input type="checkbox" class="subCheckbox" ${snakeCaseState}      id="snake-case"       /> <label for="snake-case"      >snake_case</label></div>
+					<div><input type="checkbox" class="subCheckbox" ${upperSnakeCaseState} id="upper-snake-case" /> <label for="upper-snake-case">UPPER_SNAKE_CASE</label></div>
+					<div><input type="checkbox" class="subCheckbox" ${capitalCaseState}    id="capital-case"     /> <label for="capital-case"    >Capital Case</label></div>
+					<div><input type="checkbox" class="subCheckbox" ${pathCaseState}       id="path-case"        /> <label for="path-case"       >path/case</label></div>
 				</fieldset>
 				<fieldset id="options">
 					<legend>Search</legend>
-					<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case">Sensitive case</input></div>
+					<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case" /> <label for="sensitive-case">Sensitive case</label></div>
 					<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
-					<div><input type="checkbox"                       id="whole-word"                    >Whole word</input></div>
-					<div><input type="checkbox" ${beginWordState}     id="begin-word" class="subCheckbox">Begin word</input></div>
-					<div><input type="checkbox" ${endWordState}       id="end-word"   class="subCheckbox">End word</input></div>
-					<div><input type="checkbox"                       id="case-whole-word"                    >Case whole word</input></div>
-					<div><input type="checkbox" ${caseBeginWordState} id="case-begin-word" class="subCheckbox">Case begin word</input></div>
-					<div><input type="checkbox" ${caseEndWordState}   id="case-end-word"   class="subCheckbox">Case end word</input></div>
+					<div><input type="checkbox"                       id="whole-word"                          /> <label for="whole-word">Whole word</label></div>
+					<div><input type="checkbox" ${beginWordState}     id="begin-word"      class="subCheckbox" /> <label for="begin-word">Begin word</label></div>
+					<div><input type="checkbox" ${endWordState}       id="end-word"        class="subCheckbox" /> <label for="end-word">End word</label></div>
+					<div><input type="checkbox"                       id="case-whole-word"                     /> <label for="case-whole-word">Case whole word</label></div>
+					<div><input type="checkbox" ${caseBeginWordState} id="case-begin-word" class="subCheckbox" /> <label for="case-begin-word">Case begin word</label></div>
+					<div><input type="checkbox" ${caseEndWordState}   id="case-end-word"   class="subCheckbox" /> <label for="case-end-word">Case end word</label></div>
 				</fieldset>
-				<div><input type="checkbox" ${incrementalSearchState} id="incremental-search">Incremental search</input></div>
+				<div><input type="checkbox" ${incrementalSearchState} id="incremental-search" /> <label for="incremental-search">Incremental search</label></div>
 				<button type="submit" id="okButton">OK</button>
 
 				<script nonce="${nonce}" src="${scriptUri}"></script>
