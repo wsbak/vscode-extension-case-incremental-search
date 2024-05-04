@@ -109,10 +109,21 @@
     }
 
     // Hide or show checkbox
-    // Currenty disable/enable and not hide/show
-    //  because the label of the checkbox is still visible
     function hideCheckbox(checkbox, hide) {
+        // Must hide the parent div to also hide the label
+        const div = checkbox.parentNode;
         if (hide) {
+            div?.classList.add('hidden');
+        }
+        else {
+            div?.classList.remove('hidden');
+        }
+    }
+
+    // Disable or enable checkbox
+    // Disable seems better than hide
+    function disableCheckbox(checkbox, disable) {
+        if (disable) {
             checkbox.disabled = true;
         }
         else {
@@ -135,7 +146,7 @@
             const anyChecked = computeHideShowCheckboxGroupIfAny(checkboxChanged, hideCheckboxGroupIfAny[1]);
             if (anyChecked !== undefined) {
                 for (const checkbox of hideCheckboxGroupIfAny[0]) {
-                    hideCheckbox(checkbox, anyChecked);
+                    disableCheckbox(checkbox, anyChecked);
                 }
             }
         }
@@ -143,7 +154,7 @@
             const anyChecked = computeHideShowCheckboxGroupIfAny(checkboxChanged, showCheckboxGroupIfAny[1]);
             if (anyChecked !== undefined) {
                 for (const checkbox of showCheckboxGroupIfAny[0]) {
-                    hideCheckbox(checkbox, !anyChecked);
+                    disableCheckbox(checkbox, !anyChecked);
                 }
             }
         }
@@ -155,13 +166,13 @@
             const noneChecked = [...hideCheckboxGroupIfAny[1]].every(checkbox => checkbox.checked !== true);
             const anyChecked = noneChecked !== true;
             for (const checkbox of hideCheckboxGroupIfAny[0]) {
-                hideCheckbox(checkbox, anyChecked);
+                disableCheckbox(checkbox, anyChecked);
             }
         }
         for (const showCheckboxGroupIfAny of showCheckboxGroupIfAnyArray) {
             const noneChecked = [...showCheckboxGroupIfAny[1]].every(checkbox => checkbox.checked !== true);
             for (const checkbox of showCheckboxGroupIfAny[0]) {
-                hideCheckbox(checkbox, noneChecked);
+                disableCheckbox(checkbox, noneChecked);
             }
         }
     }

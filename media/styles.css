@@ -2,3 +2,7 @@
 .subCheckbox {
 	margin-inline-start: 20px;
 }
+
+.hidden {
+	visibility: hidden;
+}
