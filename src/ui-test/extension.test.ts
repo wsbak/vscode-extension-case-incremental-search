@@ -199,5 +199,41 @@ describe('WebViews', function () {
                 }
             });
         });
+
+        // --------------------------------------------------------------------------------
+        describe('select allCases', async function () {
+            it('select allCases', async function () {
+                allCases.click();
+            });
+
+            it('cases selected', async function () {
+                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);
+                    expect(await elt.isSelected()).equals(true);
+                }
+            });
+
+            it('begin/end word disabled', async function () {
+                for (const elt of [wholeWord]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);
+                    expect(await elt.isSelected()).equals(false);
+                }
+                for (const elt of [beginWord, endWord]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(false);  // 1+ case selected
+                    expect(await elt.isSelected()).equals(false);
+                }
+            });
+
+            it('caseWords enabled', async function () {
+                for (const elt of [caseWholeWord, caseBeginWord, caseEndWord]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);  // 1+ case selected
+                    expect(await elt.isSelected()).equals(false);
+                }
+            });
+        });
     });
 });
