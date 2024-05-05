@@ -23,6 +23,7 @@ describe('WebViews', function () {
         let upperSnakeCase: WebElement;
         let capitalCase: WebElement;
         let pathCase: WebElement;
+        let caseArray: WebElement[];  // All previous except allCases
     
         let sensitiveCase: WebElement;
         let textToSearch: WebElement;
@@ -52,6 +53,7 @@ describe('WebViews', function () {
             upperSnakeCase    = await view.findWebElement(By.id('upper-snake-case'));
             capitalCase       = await view.findWebElement(By.id('capital-case'));
             pathCase          = await view.findWebElement(By.id('path-case'));
+            caseArray         = [kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase];
 
             sensitiveCase     = await view.findWebElement(By.id('sensitive-case'));
             textToSearch      = await view.findWebElement(By.id('text-to-search'));
@@ -75,7 +77,7 @@ describe('WebViews', function () {
         // --------------------------------------------------------------------------------
         describe('check once types', async function () {
             it('cases', async function () {
-                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                for (const elt of [allCases, ...caseArray]) {
                     expect(await elt.getAttribute('type')).has.string('checkbox');
                 }
             });
@@ -116,7 +118,7 @@ describe('WebViews', function () {
         // --------------------------------------------------------------------------------
         async function checkCasesNoneSelected() {
             it('checkCasesNoneSelected', async function () {
-                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                for (const elt of [allCases, ...caseArray]) {
                     expect(await elt.isDisplayed()).equals(true);
                     expect(await elt.isEnabled()).equals(true);
                     expect(await elt.isSelected()).equals(false);
@@ -125,13 +127,13 @@ describe('WebViews', function () {
         };
         async function checkCasesSomeSelected(selecteds: WebElement[]) {
             it('checkCasesSomeSelected', async function () {
-                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                for (const elt of [allCases, ...caseArray]) {
                     expect(await elt.isDisplayed()).equals(true);
                     expect(await elt.isEnabled()).equals(true);
                 }
 
                 expect(await allCases.isSelected()).equals(false);
-                for (const elt of [kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                for (const elt of caseArray) {
                     const selected = selecteds.includes(elt);
                     expect(await elt.isSelected()).equals(selected);
                 }
@@ -139,13 +141,13 @@ describe('WebViews', function () {
         };
         async function checkCasesSomeUnselected(unselecteds: WebElement[]) {
             it('checkCasesSomeUnselected', async function () {
-                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                for (const elt of [allCases, ...caseArray]) {
                     expect(await elt.isDisplayed()).equals(true);
                     expect(await elt.isEnabled()).equals(true);
                 }
 
                 expect(await allCases.isSelected()).equals(false);
-                for (const elt of [kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                for (const elt of caseArray) {
                     const selected = !unselecteds.includes(elt);
                     expect(await elt.isSelected()).equals(selected);
                 }
@@ -153,7 +155,7 @@ describe('WebViews', function () {
         };
         async function checkCasesAllSelected() {
             it('checkCasesAllSelected', async function () {
-                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                for (const elt of [allCases, ...caseArray]) {
                     expect(await elt.isDisplayed()).equals(true);
                     expect(await elt.isEnabled()).equals(true);
                     expect(await elt.isSelected()).equals(true);
