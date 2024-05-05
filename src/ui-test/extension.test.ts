@@ -103,6 +103,56 @@ describe('WebViews', function () {
         });
 
         // --------------------------------------------------------------------------------
+        async function checkSomeCaseSelected() {
+            it('words', async function () {
+                for (const elt of [wholeWord]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);
+                }
+                for (const elt of [beginWord, endWord]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(false);  // 1+ case selected
+                }
+            });
+
+            it('caseWords', async function () {
+                for (const elt of [caseWholeWord, caseBeginWord, caseEndWord]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);  // 1+ case selected
+                }
+            });
+        };
+
+        // --------------------------------------------------------------------------------
+        async function checkNoCaseSelected() {
+            it('cases', async function () {
+                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);
+                    expect(await elt.isSelected()).equals(false);
+                }
+            });
+
+            it('words', async function () {
+                for (const elt of [wholeWord]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);
+                }
+                for (const elt of [beginWord, endWord]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);  // no case selected
+                }
+            });
+
+            it('caseWords', async function () {
+                for (const elt of [caseWholeWord, caseBeginWord, caseEndWord]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(false);  // no case selected
+                }
+            });
+        };
+
+        // --------------------------------------------------------------------------------
         async function checkInitialState() {
             it('cases', async function () {
                 for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
@@ -128,23 +178,19 @@ describe('WebViews', function () {
                 }
             });
 
+            checkSomeCaseSelected();
+
             it('words', async function () {
                 for (const elt of [wholeWord]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(true);
                     expect(await elt.isSelected()).equals(false);
                 }
                 for (const elt of [beginWord, endWord]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(false);  // 1+ case selected
                     expect(await elt.isSelected()).equals(false);
                 }
             });
 
             it('caseWords', async function () {
                 for (const elt of [caseWholeWord, caseBeginWord, caseEndWord]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(true);  // 1+ case selected
                     expect(await elt.isSelected()).equals(false);
                 }
             });
@@ -175,31 +221,19 @@ describe('WebViews', function () {
                 allCases.click();
             });
 
-            it('cases selected', async function () {
-                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(true);
-                    expect(await elt.isSelected()).equals(false);
-                }
-            });
+            checkNoCaseSelected();
 
             it('words enabled', async function () {
                 for (const elt of [wholeWord]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(true);
                     expect(await elt.isSelected()).equals(false);
                 }
                 for (const elt of [beginWord, endWord]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(true);  // no case selected
                     expect(await elt.isSelected()).equals(false);
                 }
             });
 
             it('caseWords disabled', async function () {
                 for (const elt of [caseWholeWord, caseBeginWord, caseEndWord]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(false);  // no case selected
                     expect(await elt.isSelected()).equals(false);
                 }
             });
