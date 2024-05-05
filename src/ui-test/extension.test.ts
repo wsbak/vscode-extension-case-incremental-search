@@ -73,7 +73,7 @@ describe('WebViews', function () {
         });
 
         // --------------------------------------------------------------------------------
-        describe('check once', async function () {
+        describe('check once types', async function () {
             it('cases', async function () {
                 for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
                     expect(await elt.getAttribute('type')).has.string('checkbox');
@@ -110,8 +110,12 @@ describe('WebViews', function () {
         });
 
         // --------------------------------------------------------------------------------
+        describe('check once checkbox <-> label', async function () {
+        });
+
+        // --------------------------------------------------------------------------------
         async function checkCasesNoneSelected() {
-            it('cases', async function () {
+            it('checkCasesNoneSelected', async function () {
                 for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
                     expect(await elt.isDisplayed()).equals(true);
                     expect(await elt.isEnabled()).equals(true);
@@ -119,8 +123,36 @@ describe('WebViews', function () {
                 }
             });
         };
+        async function checkCasesSomeSelected(selecteds: WebElement[]) {
+            it('checkCasesSomeSelected', async function () {
+                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);
+                }
+
+                expect(await allCases.isSelected()).equals(false);
+                for (const elt of [kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                    const selected = selecteds.includes(elt);
+                    expect(await elt.isSelected()).equals(selected);
+                }
+            });
+        };
+        async function checkCasesSomeUnselected(unselecteds: WebElement[]) {
+            it('checkCasesSomeUnselected', async function () {
+                for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                    expect(await elt.isDisplayed()).equals(true);
+                    expect(await elt.isEnabled()).equals(true);
+                }
+
+                expect(await allCases.isSelected()).equals(false);
+                for (const elt of [kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
+                    const selected = !unselecteds.includes(elt);
+                    expect(await elt.isSelected()).equals(selected);
+                }
+            });
+        };
         async function checkCasesAllSelected() {
-            it('cases', async function () {
+            it('checkCasesAllSelected', async function () {
                 for (const elt of [allCases, kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase]) {
                     expect(await elt.isDisplayed()).equals(true);
                     expect(await elt.isEnabled()).equals(true);
@@ -131,7 +163,7 @@ describe('WebViews', function () {
 
         // --------------------------------------------------------------------------------
         async function checkSensitiveCase(selected: boolean) {
-            it('sensitiveCase', async function () {
+            it('checkSensitiveCase', async function () {
                 expect(await sensitiveCase.isDisplayed()).equals(true);
                 expect(await sensitiveCase.isEnabled()).equals(true);
                 expect(await sensitiveCase.isSelected()).equals(selected);
@@ -139,7 +171,7 @@ describe('WebViews', function () {
         };
 
         async function checkIncrementalSearch(selected: boolean) {
-            it('incrementalSearch', async function () {
+            it('checkIncrementalSearch', async function () {
                 expect(await incrementalSearch.isDisplayed()).equals(true);
                 expect(await incrementalSearch.isEnabled()).equals(true);
                 expect(await incrementalSearch.isSelected()).equals(selected);
@@ -147,14 +179,14 @@ describe('WebViews', function () {
         };
 
         async function checkOkButton(displayed: boolean) {
-            it('okButton', async function () {
+            it('checkOkButton', async function () {
                 expect(await okButton.isDisplayed()).equals(displayed);
                 expect(await okButton.isEnabled()).equals(true);
             });
         };
 
         async function checkTextToSearch(text: string) {
-            it('textToSearch', async function () {
+            it('checkTextToSearch', async function () {
                 expect(await textToSearch.isDisplayed()).equals(true);
                 expect(await textToSearch.isEnabled()).equals(true);
                 expect(await textToSearch.getText()).has.string(text);
@@ -163,7 +195,7 @@ describe('WebViews', function () {
 
         // --------------------------------------------------------------------------------
         async function checkWords({someCaseSelected, whole, begin, end}: CheckWords) {
-            it('words', async function () {
+            it('checkWords', async function () {
                 expect(await wholeWord.isDisplayed()).equals(true);
                 expect(await wholeWord.isEnabled()).equals(true);
 
@@ -181,7 +213,7 @@ describe('WebViews', function () {
 
         // --------------------------------------------------------------------------------
         async function checkCaseWords({someCaseSelected, whole, begin, end}: CheckWords) {
-            it('words', async function () {
+            it('checkCaseWords', async function () {
                 const enabled = someCaseSelected === true;
                 for (const elt of [caseWholeWord, caseBeginWord, caseEndWord]) {
                     expect(await elt.isDisplayed()).equals(true);
@@ -225,6 +257,28 @@ describe('WebViews', function () {
         describe('select allCases', async function () {
             it('select allCases', async function () {
                 allCases.click();
+            });
+
+            checkInitialState();
+        });
+
+        // --------------------------------------------------------------------------------
+        describe('unselect 1 case', async function () {
+            it('unselect 1 case', async function () {
+                kebabCase.click();
+            });
+
+            it('', async function () {  // it mandatory to avoid kebabCase=undefined
+                checkCasesSomeUnselected([kebabCase]);
+                checkWords({someCaseSelected: true, whole: false, begin: false, end: false});
+                checkCaseWords({someCaseSelected: true, whole: false, begin: false, end: false});
+            });
+        });
+
+        // --------------------------------------------------------------------------------
+        describe('select back unselected case', async function () {
+            it('select back unselected case', async function () {
+                kebabCase.click();
             });
 
             checkInitialState();
