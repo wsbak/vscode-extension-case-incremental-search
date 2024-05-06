@@ -266,24 +266,21 @@ describe('WebViews', function () {
 
         // --------------------------------------------------------------------------------
         describe('unselect 1 case', async function () {
-            it('unselect 1 case', async function () {
-                kebabCase.click();
-            });
+            it('', async function () {  // it mandatory to avoid caseArray=undefined
+                for (const caseCheckbox of caseArray) {
+                    console.log(`caseCheckbox=${await caseCheckbox.getAttribute("id")}`);
 
-            it('', async function () {  // it mandatory to avoid kebabCase=undefined
-                checkCasesSomeUnselected([kebabCase]);
-                checkWords({someCaseSelected: true, whole: false, begin: false, end: false});
-                checkCaseWords({someCaseSelected: true, whole: false, begin: false, end: false});
-            });
-        });
+                    // unselect
+                    caseCheckbox.click();
+                    checkCasesSomeUnselected([caseCheckbox]);
+                    checkWords({someCaseSelected: true, whole: false, begin: false, end: true});  // ICIOA
+                    checkCaseWords({someCaseSelected: true, whole: false, begin: false, end: false});
 
-        // --------------------------------------------------------------------------------
-        describe('select back unselected case', async function () {
-            it('select back unselected case', async function () {
-                kebabCase.click();
+                    // select
+                    caseCheckbox.click();
+                    checkInitialState();
+                }
             });
-
-            checkInitialState();
         });
     });
 });
