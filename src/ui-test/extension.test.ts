@@ -2,6 +2,13 @@ import { Workbench, EditorView, WebView, By } from 'vscode-extension-tester';
 import { expect } from 'chai';
 import { WebElement } from "selenium-webdriver";
 
+// variables initialized inside before are not usable oustside it/after/...
+// it       inside it is not executed
+// describe inside it is not executed
+
+
+const caseIdArray = ["kebab-case", "camel-case", "pascal-case", "snake-case", "upper-snake-case", "capital-case", "path-case"];
+
 interface CheckWords {
     someCaseSelected: boolean;
     whole: boolean;
@@ -75,6 +82,24 @@ describe('WebViews', function () {
         });
 
         // --------------------------------------------------------------------------------
+        // retrieve a case checkbox by its id
+        async function retrieve(caseId: string): Promise<WebElement> {
+            // const elt = await view.findWebElement(By.id(caseId));
+            //  will not give the exact same result
+            //  i.e. it will not work into  caseArray.includes(elt);
+
+            for (const elt of [allCases, ...caseArray]) {
+                if (await elt.getAttribute('id') === caseId) {
+                    return elt;
+                }
+            }
+
+            const explain = `ERROR caseId ${caseId} not found`;
+            console.log(explain);
+            throw Error(explain);
+        };
+
+        // --------------------------------------------------------------------------------
         describe('check once types', async function () {
             it('cases', async function () {
                 for (const elt of [allCases, ...caseArray]) {
@@ -117,169 +142,177 @@ describe('WebViews', function () {
 
         // --------------------------------------------------------------------------------
         async function checkCasesNoneSelected() {
-            it('checkCasesNoneSelected', async function () {
-                for (const elt of [allCases, ...caseArray]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(true);
-                    expect(await elt.isSelected()).equals(false);
-                }
-            });
+            for (const elt of [allCases, ...caseArray]) {
+                expect(await elt.isDisplayed()).equals(true);
+                expect(await elt.isEnabled()).equals(true);
+                expect(await elt.isSelected()).equals(false);
+            }
         };
         async function checkCasesSomeSelected(selecteds: WebElement[]) {
-            it('checkCasesSomeSelected', async function () {
-                for (const elt of [allCases, ...caseArray]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(true);
-                }
+            for (const elt of [allCases, ...caseArray]) {
+                expect(await elt.isDisplayed()).equals(true);
+                expect(await elt.isEnabled()).equals(true);
+            }
 
-                expect(await allCases.isSelected()).equals(false);
-                for (const elt of caseArray) {
-                    const selected = selecteds.includes(elt);
-                    expect(await elt.isSelected()).equals(selected);
-                }
-            });
+            expect(await allCases.isSelected()).equals(false);
+            for (const elt of caseArray) {
+                const selected = selecteds.includes(elt);
+                expect(await elt.isSelected()).equals(selected);
+            }
         };
         async function checkCasesSomeUnselected(unselecteds: WebElement[]) {
-            it('checkCasesSomeUnselected', async function () {
-                for (const elt of [allCases, ...caseArray]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(true);
-                }
+            for (const elt of [allCases, ...caseArray]) {
+                expect(await elt.isDisplayed()).equals(true);
+                expect(await elt.isEnabled()).equals(true);
+            }
 
-                expect(await allCases.isSelected()).equals(false);
-                for (const elt of caseArray) {
-                    const selected = !unselecteds.includes(elt);
-                    expect(await elt.isSelected()).equals(selected);
-                }
-            });
+            for (const unselected of unselecteds) {
+                console.log(`unselected.id=${await unselected.getAttribute('id')}`);
+            }
+
+            expect(await allCases.isSelected()).equals(false);
+            for (const elt of caseArray) {
+                const selected = !unselecteds.includes(elt);
+                console.log(`elt.id=${await elt.getAttribute('id')} selected=${selected}`);
+                expect(await elt.isSelected()).equals(selected);
+            }
         };
         async function checkCasesAllSelected() {
-            it('checkCasesAllSelected', async function () {
-                for (const elt of [allCases, ...caseArray]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(true);
-                    expect(await elt.isSelected()).equals(true);
-                }
-            });
+            for (const elt of [allCases, ...caseArray]) {
+                expect(await elt.isDisplayed()).equals(true);
+                expect(await elt.isEnabled()).equals(true);
+                expect(await elt.isSelected()).equals(true);
+            }
         };
 
         // --------------------------------------------------------------------------------
         async function checkSensitiveCase(selected: boolean) {
-            it('checkSensitiveCase', async function () {
-                expect(await sensitiveCase.isDisplayed()).equals(true);
-                expect(await sensitiveCase.isEnabled()).equals(true);
-                expect(await sensitiveCase.isSelected()).equals(selected);
-            });
+            expect(await sensitiveCase.isDisplayed()).equals(true);
+            expect(await sensitiveCase.isEnabled()).equals(true);
+            expect(await sensitiveCase.isSelected()).equals(selected);
         };
 
         async function checkIncrementalSearch(selected: boolean) {
-            it('checkIncrementalSearch', async function () {
-                expect(await incrementalSearch.isDisplayed()).equals(true);
-                expect(await incrementalSearch.isEnabled()).equals(true);
-                expect(await incrementalSearch.isSelected()).equals(selected);
-            });
+            expect(await incrementalSearch.isDisplayed()).equals(true);
+            expect(await incrementalSearch.isEnabled()).equals(true);
+            expect(await incrementalSearch.isSelected()).equals(selected);
         };
 
         async function checkOkButton(displayed: boolean) {
-            it('checkOkButton', async function () {
-                expect(await okButton.isDisplayed()).equals(displayed);
-                expect(await okButton.isEnabled()).equals(true);
-            });
+            expect(await okButton.isDisplayed()).equals(displayed);
+            expect(await okButton.isEnabled()).equals(true);
         };
 
         async function checkTextToSearch(text: string) {
-            it('checkTextToSearch', async function () {
-                expect(await textToSearch.isDisplayed()).equals(true);
-                expect(await textToSearch.isEnabled()).equals(true);
-                expect(await textToSearch.getText()).has.string(text);
-            });
+            expect(await textToSearch.isDisplayed()).equals(true);
+            expect(await textToSearch.isEnabled()).equals(true);
+            expect(await textToSearch.getText()).has.string(text);
         };
 
         // --------------------------------------------------------------------------------
         async function checkWords({someCaseSelected, whole, begin, end}: CheckWords) {
-            it('checkWords', async function () {
-                expect(await wholeWord.isDisplayed()).equals(true);
-                expect(await wholeWord.isEnabled()).equals(true);
+            expect(await wholeWord.isDisplayed()).equals(true);
+            expect(await wholeWord.isEnabled()).equals(true);
 
-                const enabled = someCaseSelected !== true;
-                for (const elt of [beginWord, endWord]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(enabled);
-                }
+            const enabled = someCaseSelected !== true;
+            for (const elt of [beginWord, endWord]) {
+                expect(await elt.isDisplayed()).equals(true);
+                expect(await elt.isEnabled()).equals(enabled);
+            }
 
-                expect(await wholeWord.isSelected()).equals(whole);
-                expect(await beginWord.isSelected()).equals(begin);
-                expect(await endWord.isSelected()).equals(end);
-            });
+            expect(await wholeWord.isSelected()).equals(whole);
+            expect(await beginWord.isSelected()).equals(begin);
+            expect(await endWord.isSelected()).equals(end);
         };
 
         // --------------------------------------------------------------------------------
         async function checkCaseWords({someCaseSelected, whole, begin, end}: CheckWords) {
-            it('checkCaseWords', async function () {
-                const enabled = someCaseSelected === true;
-                for (const elt of [caseWholeWord, caseBeginWord, caseEndWord]) {
-                    expect(await elt.isDisplayed()).equals(true);
-                    expect(await elt.isEnabled()).equals(enabled);
-                }
+            const enabled = someCaseSelected === true;
+            for (const elt of [caseWholeWord, caseBeginWord, caseEndWord]) {
+                expect(await elt.isDisplayed()).equals(true);
+                expect(await elt.isEnabled()).equals(enabled);
+            }
 
-                expect(await caseWholeWord.isSelected()).equals(whole);
-                expect(await caseBeginWord.isSelected()).equals(begin);
-                expect(await caseEndWord.isSelected()).equals(end);
-            });
+            expect(await caseWholeWord.isSelected()).equals(whole);
+            expect(await caseBeginWord.isSelected()).equals(begin);
+            expect(await caseEndWord.isSelected()).equals(end);
         };
 
         // --------------------------------------------------------------------------------
         async function checkInitialState() {
-            checkCasesAllSelected();
-            checkSensitiveCase(true);
-            checkTextToSearch('');
-            checkWords({someCaseSelected: true, whole: false, begin: false, end: false});
-            checkCaseWords({someCaseSelected: true, whole: false, begin: false, end: false});
-            checkIncrementalSearch(true);
-            checkOkButton(false);
+            await checkCasesAllSelected();
+            await checkSensitiveCase(true);
+            await checkTextToSearch('');
+            await checkWords({someCaseSelected: true, whole: false, begin: false, end: false});
+            await checkCaseWords({someCaseSelected: true, whole: false, begin: false, end: false});
+            await checkIncrementalSearch(true);
+            await checkOkButton(false);
         };
 
         // --------------------------------------------------------------------------------
-        describe('initial state', async function () {
-            checkInitialState();
+        it('initial state', async function () {
+            await checkInitialState();
         });
         
         // --------------------------------------------------------------------------------
-        describe('unselect allCases', async function () {
-            it('unselect allCases', async function () {
-                allCases.click();
-            });
-
-            checkCasesNoneSelected();
-            checkWords({someCaseSelected: false, whole: false, begin: false, end: false});
-            checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
+        it('unselect allCases', async function () {
+            allCases.click();
+            await checkCasesNoneSelected();
+            await checkWords({someCaseSelected: false, whole: false, begin: false, end: false});
+            await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
         });
 
         // --------------------------------------------------------------------------------
-        describe('select allCases', async function () {
-            it('select allCases', async function () {
-                allCases.click();
-            });
-
-            checkInitialState();
+        it('select allCases', async function () {
+            allCases.click();
+            await checkInitialState();
         });
 
         // --------------------------------------------------------------------------------
-        describe('unselect 1 case', async function () {
-            it('', async function () {  // it mandatory to avoid caseArray=undefined
-                for (const caseCheckbox of caseArray) {
-                    console.log(`caseCheckbox=${await caseCheckbox.getAttribute("id")}`);
+        caseIdArray.forEach((caseId) => {
+            it(`unselect 1 case ${caseId}`, async function () {
+                const caseCheckbox = await retrieve(caseId);
+                caseCheckbox.click();
 
-                    // unselect
-                    caseCheckbox.click();
-                    checkCasesSomeUnselected([caseCheckbox]);
-                    checkWords({someCaseSelected: true, whole: false, begin: false, end: true});  // ICIOA
-                    checkCaseWords({someCaseSelected: true, whole: false, begin: false, end: false});
+                await checkCasesSomeUnselected([caseCheckbox]);
+                await checkWords({someCaseSelected: true, whole: false, begin: false, end: false});
+                await checkCaseWords({someCaseSelected: true, whole: false, begin: false, end: false});
+            });
 
-                    // select
-                    caseCheckbox.click();
-                    checkInitialState();
-                }
+            it(`select 1 case ${caseId}`, async function () {
+                const caseCheckbox = await retrieve(caseId);
+                caseCheckbox.click();
+
+                await checkInitialState();
+            });
+        });
+
+        // --------------------------------------------------------------------------------
+        it('unselect allCases', async function () {
+            allCases.click();
+            await checkCasesNoneSelected();
+            await checkWords({someCaseSelected: false, whole: false, begin: false, end: false});
+            await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
+        });
+
+        // --------------------------------------------------------------------------------
+        caseIdArray.forEach((caseId) => {
+            it(`select 1 case ${caseId}`, async function () {
+                const caseCheckbox = await retrieve(caseId);
+                caseCheckbox.click();
+
+                await checkCasesSomeSelected([caseCheckbox]);
+                await checkWords({someCaseSelected: true, whole: false, begin: false, end: false});
+                await checkCaseWords({someCaseSelected: true, whole: false, begin: false, end: false});
+            });
+
+            it(`unselect 1 case ${caseId}`, async function () {
+                const caseCheckbox = await retrieve(caseId);
+                caseCheckbox.click();
+
+                await checkCasesNoneSelected();
+                await checkWords({someCaseSelected: false, whole: false, begin: false, end: false});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
             });
         });
     });
