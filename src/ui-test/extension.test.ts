@@ -551,4 +551,21 @@ describe('WebViews', function () {
             await checkOkButton(false);
         });
     });
+
+    // --------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------
+    describe('sensitiveCase', async function () {
+
+        it('Check initial state', async function () {
+            await checkSensitiveCase(true);
+        });
+        it('select sensitiveCase', async function () {
+            sensitiveCase.click();
+            await checkSensitiveCase(false);
+        });
+        it('unselect sensitiveCase', async function () {
+            sensitiveCase.click();
+            await checkSensitiveCase(true);
+        });
+    });
 });
