@@ -530,4 +530,25 @@ describe('WebViews', function () {
             });
         });
     });
+
+    // --------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------
+    describe('incrementalSearch & okButton', async function () {
+        // if incrementalSearch is selected, okButton is not visible
+
+        it('Check initial state', async function () {
+            await checkIncrementalSearch(true);
+            await checkOkButton(false);
+        });
+        it('select incrementalSearch', async function () {
+            incrementalSearch.click();
+            await checkIncrementalSearch(false);
+            await checkOkButton(true);
+        });
+        it('unselect incrementalSearch', async function () {
+            incrementalSearch.click();
+            await checkIncrementalSearch(true);
+            await checkOkButton(false);
+        });
+    });
 });
