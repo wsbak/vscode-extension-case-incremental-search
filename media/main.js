@@ -201,8 +201,6 @@
     let focusItem = undefined;
 
     function sendSearchCommand(command) {
-        console.log("sendSearchCommand", command);
-        console.log("text-to-search input", textToSearch?.value);
         vscode.postMessage({
             command:           command,
             incrementalSearch: incrementalSearch?.checked,
@@ -223,10 +221,8 @@
     }
 
     function searchIncremental(event) {
-        console.log("searchIncremental");
     
         if (!incrementalSearch?.checked) {
-            console.log("input but not incrementalSearch");
             focusItem = undefined;
             sendSearchCommand('saveStatus');
             return;
@@ -237,12 +233,10 @@
     }
 
     document.getElementById('okButton')?.addEventListener('click', () => {
-        console.log("okButton click");
         sendSearchCommand('okButton');
     });
     textToSearch?.addEventListener("keyup", ({key}) => {
         if (key === "Enter") {
-            console.log("Enter key");
             sendSearchCommand('okButton');
         }
     });
