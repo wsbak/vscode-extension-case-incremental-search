@@ -2,9 +2,10 @@ import { Workbench, EditorView, WebView, By } from 'vscode-extension-tester';
 import { expect } from 'chai';
 import { WebElement } from "selenium-webdriver";
 
-// variables initialized inside before are not usable oustside it/after/...
+// Variables initialized inside before are not usable oustside it/after/...
 // it       inside it is not executed
 // describe inside it is not executed
+// When it and describe are at the same level, it are executed first
 
 
 const caseIdArray = ["kebab-case", "camel-case", "pascal-case", "snake-case", "upper-snake-case", "capital-case", "path-case"];
@@ -243,8 +244,10 @@ describe('WebViews', function () {
     };
 
     // --------------------------------------------------------------------------------
-    it('initial state', async function () {
-        await checkInitialState();
+    describe('check initial state', async function () {
+        it('initial state', async function () {
+            await checkInitialState();
+        });
     });
     
     // --------------------------------------------------------------------------------
@@ -323,6 +326,10 @@ describe('WebViews', function () {
     // --------------------------------------------------------------------------------
     // --------------------------------------------------------------------------------
     describe('Case Begin/End/Whole Word', async function () {
+        // Case Xxx Word are incompatibles with Xxx Word
+        // So, at beginning of each test,
+        //  we select 1 Xxx Word
+        //  to check it is automatically deselected when user select any Case Xxx Word
 
         async function selectWholeBeginWord(checkbox: WebElement) {
             allCases.click();   // no case selected
@@ -405,6 +412,121 @@ describe('WebViews', function () {
                 caseEndWord.click();
                 await checkWords(    {someCaseSelected: true, whole: false, begin: false, end: false});
                 await checkCaseWords({someCaseSelected: true, whole: false, begin: false, end: false});
+            });
+        });
+
+        // --------------------------------------------------------------------------------
+        describe('check initial state at the end of test group', async function () {
+            it('checkInitialState', async function () {
+                await checkInitialState();
+            });
+        });
+    });
+
+    // --------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------
+    describe('Begin/End/Whole Word', async function () {
+        // Xxx Word are incompatibles with Case Xxx Word
+        // So, at beginning of each test,
+        //  we select 1 Case Xxx Word
+        //  to check it is automatically deselected when user select any Xxx Word
+
+        async function selectCaseWholeBeginWord(checkbox: WebElement) {
+            allCases.click();   // all cases selected
+            checkbox.click();
+            allCases.click();   // no cases selected
+        };
+
+        // --------------------------------------------------------------------------------
+        describe('All cases must be deselected to enable Xxx Word', async function () {
+            it('deselect all cases', async function () {
+                allCases.click();   // no cases selected
+            });
+        });
+
+        // --------------------------------------------------------------------------------
+        describe('Whole Word', async function () {
+            it('select Case Whole Word', async function () {
+                selectCaseWholeBeginWord(caseWholeWord);
+                await checkCaseWords({someCaseSelected: false, whole: true, begin: true,  end: true});
+            });
+            it('select Whole Word', async function () {
+                wholeWord.click();
+                await checkWords(    {someCaseSelected: false, whole: true,  begin: true,  end: true});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});  // all case words unselected
+            });
+            it('unselect Whole Word', async function () {
+                wholeWord.click();
+                await checkWords(    {someCaseSelected: false, whole: false, begin: false, end: false});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
+            });
+        });
+
+        // --------------------------------------------------------------------------------
+        describe('Begin Word', async function () {
+            it('select Case End Word', async function () {
+                selectCaseWholeBeginWord(caseEndWord);
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false,  end: true});
+            });
+            it('select Begin Word', async function () {
+                beginWord.click();
+                await checkWords(    {someCaseSelected: false, whole: false, begin: true,  end: false});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});  // all case words unselected
+            });
+            it('unselect Begin Word', async function () {
+                beginWord.click();
+                await checkWords(    {someCaseSelected: false, whole: false, begin: false, end: false});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
+            });
+        });
+
+        // --------------------------------------------------------------------------------
+        describe('End Word', async function () {
+            it('select Case Begin Word', async function () {
+                selectCaseWholeBeginWord(caseBeginWord);
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: true,  end: false});
+            });
+            it('select End Word', async function () {
+                endWord.click();
+                await checkWords(    {someCaseSelected: false, whole: false, begin: false, end: true});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});  // all case words unselected
+            });
+            it('unselect End Word', async function () {
+                endWord.click();
+                await checkWords(    {someCaseSelected: false, whole: false, begin: false, end: false});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
+            });
+        });
+
+        // --------------------------------------------------------------------------------
+        describe('Begin + End Word', async function () {
+            it('select Begin Word', async function () {
+                beginWord.click();
+                await checkWords(    {someCaseSelected: false, whole: false, begin: true,  end: false});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
+            });
+            it('select End Word', async function () {
+                endWord.click();
+                await checkWords(    {someCaseSelected: false, whole: true,  begin: true,  end: true});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
+            });
+            it('unselect Begin Word', async function () {
+                beginWord.click();
+                await checkWords(    {someCaseSelected: false, whole: false, begin: false, end: true});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
+            });
+            it('unselect End Word', async function () {
+                endWord.click();
+                await checkWords(    {someCaseSelected: false, whole: false, begin: false, end: false});
+                await checkCaseWords({someCaseSelected: false, whole: false, begin: false, end: false});
+            });
+        });
+
+        // --------------------------------------------------------------------------------
+        describe('Return to initial state', async function () {
+            it('checkInitialState', async function () {
+                allCases.click();   // all cases selected
+                await checkInitialState();
             });
         });
     });
