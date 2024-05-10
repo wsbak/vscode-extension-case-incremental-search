@@ -8,3 +8,6 @@
 
 - feat: add Case Begin/End/Whole Word  
 
+## 0.0.3  
+
+- fix: case search panel stays empty after restart  
