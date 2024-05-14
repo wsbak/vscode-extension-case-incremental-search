@@ -35,10 +35,10 @@ function buildRegexQuery(query: string, selectedCaseFunctions: readonly any[], m
 		let queryScope = caseFunction(query) || query;
 
 		const separator: string = caseFunctionData[1];
-		if (message.caseBeginWord) {
+		if (message.beginWord) {
 			queryScope = buildRegexExcludePreceded(separator) + queryScope;
 		}
-		if (message.caseEndWord) {
+		if (message.endWord) {
 			queryScope = queryScope + buildRegexExcludeFollowed(separator);
 		}
 
@@ -49,10 +49,11 @@ function buildRegexQuery(query: string, selectedCaseFunctions: readonly any[], m
 }
 
 // build regex query without any case selected
-function buildRegexQueryNoCaseSelected(query: string, message: any): string {
+// also returns matchWholeWord for the vscode command workbench.action.findInFiles
+function buildRegexQueryNoCaseSelected(query: string, message: any): [string, boolean] {
 	if (message.beginWord && message.endWord) {
 		// Managed by matchWholeWord
-		return query;
+		return [query, true];
 	}
 
 	if (message.beginWord) {
@@ -62,7 +63,7 @@ function buildRegexQueryNoCaseSelected(query: string, message: any): string {
 		query = query + "\\b";
 	}
 
-	return query;
+	return [query, false];
 }
 
 /**
@@ -93,7 +94,8 @@ const convertFunctions: any = [
 ];
 
 // build regex query with all cases selected
-function messageToRegexQuery(message: any): string {
+// also returns matchWholeWord for the vscode command workbench.action.findInFiles
+function messageToRegexQuery(message: any): [string, boolean] {
 	let selectedCaseFunctions: any[] = [];
 	if (message.kebabCase)      { selectedCaseFunctions.push(paramCaseData); }
 	if (message.camelCase)      { selectedCaseFunctions.push(camelCaseData); }
@@ -107,7 +109,7 @@ function messageToRegexQuery(message: any): string {
 		return buildRegexQueryNoCaseSelected(message.text, message);
 	}
 
-	return buildRegexQuery(message.text, selectedCaseFunctions, message);
+	return [buildRegexQuery(message.text, selectedCaseFunctions, message), false];
 }
 
 // Read string from context.workspaceState
@@ -142,8 +144,6 @@ function saveStatus(context: ExtensionContext, message: any) {
 	context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
 	context.workspaceState.update("beginWord",         message.beginWord);
 	context.workspaceState.update("endWord",           message.endWord);
-	context.workspaceState.update("caseBeginWord",     message.caseBeginWord);
-	context.workspaceState.update("caseEndWord",       message.caseEndWord);
 	context.workspaceState.update("text",              message.text);
 
 	context.workspaceState.update("kebabCase",         message.kebabCase);
@@ -261,23 +261,25 @@ class CaseSearchPanel {
 						return;
 					case 'okButton':
 						console.log("okButton received");
+						const [query, matchWholeWord] = messageToRegexQuery(message);
 						vscode.commands.executeCommand("workbench.action.findInFiles", {
-							query: messageToRegexQuery(message),
+							query: query,
 							triggerSearch: true,
 							isRegex: true,
 							isCaseSensitive: message.sensitiveCase,
-							matchWholeWord: message.beginWord && message.endWord,
+							matchWholeWord: matchWholeWord,
 						});
 						saveStatus(this._context, message);
 						return;
 					case 'text-to-search': {
 						console.log("text-to-search received", message.text);
+						const [query, matchWholeWord] = messageToRegexQuery(message);
 						vscode.commands.executeCommand("workbench.action.findInFiles", {
-							query: messageToRegexQuery(message),
+							query: query,
 							triggerSearch: true,
 							isRegex: true,
 							isCaseSensitive: message.sensitiveCase,
-							matchWholeWord: message.beginWord && message.endWord,
+							matchWholeWord: matchWholeWord,
 						});
 						saveStatus(this._context, message);
 
@@ -334,9 +336,6 @@ class CaseSearchPanel {
 		const beginWordState         = readCheckbox(context, "beginWord");
 		const endWordState           = readCheckbox(context, "endWord");
 		// wholeWordState computed by main.js
-		const caseBeginWordState     = readCheckbox(context, "caseBeginWord");
-		const caseEndWordState       = readCheckbox(context, "caseEndWord");
-		// caseWholeWordState computed by main.js
 		const text                   = readString(  context, "text");
 		const kebabCaseState         = readCheckbox(context, "kebabCase",      true);
 		const camelCaseState         = readCheckbox(context, "camelCase",      true);
@@ -385,9 +384,6 @@ class CaseSearchPanel {
 					<div><input type="checkbox"                       id="whole-word"                          /> <label for="whole-word">Whole word</label></div>
 					<div><input type="checkbox" ${beginWordState}     id="begin-word"      class="subCheckbox" /> <label for="begin-word">Begin word</label></div>
 					<div><input type="checkbox" ${endWordState}       id="end-word"        class="subCheckbox" /> <label for="end-word">End word</label></div>
-					<div><input type="checkbox"                       id="case-whole-word"                     /> <label for="case-whole-word">Case whole word</label></div>
-					<div><input type="checkbox" ${caseBeginWordState} id="case-begin-word" class="subCheckbox" /> <label for="case-begin-word">Case begin word</label></div>
-					<div><input type="checkbox" ${caseEndWordState}   id="case-end-word"   class="subCheckbox" /> <label for="case-end-word">Case end word</label></div>
 				</fieldset>
 				<div><input type="checkbox" ${incrementalSearchState} id="incremental-search" /> <label for="incremental-search">Incremental search</label></div>
 				<button type="submit" id="okButton">OK</button>

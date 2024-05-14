@@ -14,8 +14,6 @@ function msg(query: string = "", booleanNames: string = ""): any {
 		// for buildRegexQuery... (and so for transformQuery2RegExp) 
 		beginWord: false,
 		endWord: false,
-		caseBeginWord: false,
-		caseEndWord: false,
 		// only for transformQuery2RegExp
 		text: query,
 		kebabCase: false,
@@ -37,9 +35,9 @@ function msg(query: string = "", booleanNames: string = ""): any {
 function msgBeginWord(query: string = ""): any { return msg(query, "beginWord"); }
 function msgEndWord(  query: string = ""): any { return msg(query, "endWord"); }
 function msgWholeWord(query: string = ""): any { return msg(query, "beginWord,endWord"); }
-function msgCaseBeginWord(query: string = "", bns: string = ""): any { return msg(query, "caseBeginWord,"+bns); }
-function msgCaseEndWord(  query: string = "", bns: string = ""): any { return msg(query, "caseEndWord,"+bns); }
-function msgCaseWholeWord(query: string = "", bns: string = ""): any { return msg(query, "caseBeginWord,caseEndWord,"+bns); }
+function msgCaseBeginWord(query: string = "", bns: string = ""): any { return msg(query, "beginWord,"+bns); }
+function msgCaseEndWord(  query: string = "", bns: string = ""): any { return msg(query, "endWord,"+bns); }
+function msgCaseWholeWord(query: string = "", bns: string = ""): any { return msg(query, "beginWord,endWord,"+bns); }
 
 suite('Extension Test Suite', () => {
 	vscode.window.showInformationMessage('Start all tests.');
@@ -76,41 +74,41 @@ suite('Extension Test Suite', () => {
 
 	test('buildRegexQueryNoCaseSelected', () => {
 		const query = "one two_three-Four";
-		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msg()),                  query);
-		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msgBeginWord()), "\\b" + query);
-		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msgEndWord()),           query + "\\b");
+		assert.deepStrictEqual(buildRegexQueryNoCaseSelected(query, msg()),          [        query,         false]);
+		assert.deepStrictEqual(buildRegexQueryNoCaseSelected(query, msgBeginWord()), ["\\b" + query,         false]);
+		assert.deepStrictEqual(buildRegexQueryNoCaseSelected(query, msgEndWord()),   [        query + "\\b", false]);
 		// beginWord + endWord = wholeWord which is managed by vscode
 		// So no transformation and regex query = query
-		assert.strictEqual(buildRegexQueryNoCaseSelected(query, msgWholeWord()),         query);
+		assert.deepStrictEqual(buildRegexQueryNoCaseSelected(query, msgWholeWord()), [        query,         true]);
 	});
 
 	test('transformQuery2RegExp', () => {
 		const query1 = "one two_three-Four";
 		const query2 = "oneTwoThreeFour";
 
-		assert.strictEqual(messageToRegexQuery(msg(query1, "kebabCase")),      "one-two-three-four");
-		assert.strictEqual(messageToRegexQuery(msg(query2, "kebabCase")),      "one-two-three-four");
-		assert.strictEqual(messageToRegexQuery(msg(query1, "camelCase")),      "oneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(msg(query2, "camelCase")),      "oneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(msg(query1, "pascalCase")),     "OneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(msg(query2, "pascalCase")),     "OneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(msg(query1, "snakeCase")),      "one_two_three_four");
-		assert.strictEqual(messageToRegexQuery(msg(query2, "snakeCase")),      "one_two_three_four");
-		assert.strictEqual(messageToRegexQuery(msg(query1, "upperSnakeCase")), "ONE_TWO_THREE_FOUR");
-		assert.strictEqual(messageToRegexQuery(msg(query2, "upperSnakeCase")), "ONE_TWO_THREE_FOUR");
-		assert.strictEqual(messageToRegexQuery(msg(query1, "capitalCase")),    "One Two Three Four");
-		assert.strictEqual(messageToRegexQuery(msg(query2, "capitalCase")),    "One Two Three Four");
-		assert.strictEqual(messageToRegexQuery(msg(query1, "pathCase")),       "one/two/three/four");
-		assert.strictEqual(messageToRegexQuery(msg(query2, "pathCase")),       "one/two/three/four");
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "kebabCase")),      ["one-two-three-four", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query2, "kebabCase")),      ["one-two-three-four", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "camelCase")),      ["oneTwoThreeFour",    false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query2, "camelCase")),      ["oneTwoThreeFour",    false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "pascalCase")),     ["OneTwoThreeFour",    false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query2, "pascalCase")),     ["OneTwoThreeFour",    false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "snakeCase")),      ["one_two_three_four", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query2, "snakeCase")),      ["one_two_three_four", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "upperSnakeCase")), ["ONE_TWO_THREE_FOUR", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query2, "upperSnakeCase")), ["ONE_TWO_THREE_FOUR", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "capitalCase")),    ["One Two Three Four", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query2, "capitalCase")),    ["One Two Three Four", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "pathCase")),       ["one/two/three/four", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query2, "pathCase")),       ["one/two/three/four", false]);
 
 		// Multiple functions selected
-		assert.strictEqual(messageToRegexQuery(msg(query1, "kebabCase,camelCase")),
-							"one-two-three-four|oneTwoThreeFour");
-		assert.strictEqual(messageToRegexQuery(msg(query1, "pascalCase,upperSnakeCase,pathCase")),
-							"OneTwoThreeFour|ONE_TWO_THREE_FOUR|one/two/three/four");
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "kebabCase,camelCase")),
+		                       ["one-two-three-four|oneTwoThreeFour", false]);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "pascalCase,upperSnakeCase,pathCase")),
+		 					   ["OneTwoThreeFour|ONE_TWO_THREE_FOUR|one/two/three/four", false]);
 
 		// No fonction/case selected, so no transformation
-		assert.strictEqual(messageToRegexQuery(msg(query1, "")), query1);
+		assert.deepStrictEqual(messageToRegexQuery(msg(query1, "")), [query1, false]);
 	});
 
 	// Regex options
@@ -195,7 +193,7 @@ suite('Extension Test Suite', () => {
 		// Match using messageToRegexQuery
 		function match(query: string, selectedCases: string, text: string): any {
 			const message: Record<string, any> = msg(query, selectedCases);
-			const regex = new RegExp(messageToRegexQuery(message), "gui");
+			const regex = new RegExp(messageToRegexQuery(message)[0], "gui");
 			return text.match(regex);
 		}
 
@@ -255,7 +253,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with caseBeginWord using messageToRegexQuery
 		function matchBegin(query: string, selectedCases: string, text: string): any {
-			const regex = new RegExp(messageToRegexQuery(msgCaseBeginWord(query, selectedCases)), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgCaseBeginWord(query, selectedCases))[0], "gui");
 			return text.match(regex);
 		}
 
@@ -271,7 +269,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with caseEndWord using messageToRegexQuery
 		function matchEnd(query: string, selectedCases: string, text: string): any {
-			const regex = new RegExp(messageToRegexQuery(msgCaseEndWord(query, selectedCases)), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgCaseEndWord(query, selectedCases))[0], "gui");
 			return text.match(regex);
 		}
 
@@ -287,7 +285,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with caseBeginWord & caseEndWord using messageToRegexQuery
 		function matchWhole(query: string, selectedCases: string, text: string): any {
-			const regex = new RegExp(messageToRegexQuery(msgCaseWholeWord(query, selectedCases)), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgCaseWholeWord(query, selectedCases))[0], "gui");
 			return text.match(regex);
 		}
 
@@ -353,7 +351,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with beginWord using messageToRegexQuery
 		function matchBegin(query: string, text: string): any {
-			const regex = new RegExp(messageToRegexQuery(msgBeginWord(query)), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgBeginWord(query))[0], "gui");
 			return text.match(regex);
 		}
 
@@ -366,7 +364,7 @@ suite('Extension Test Suite', () => {
 
 		// Match with endWord using messageToRegexQuery
 		function matchEnd(query: string, text: string): any {
-			const regex = new RegExp(messageToRegexQuery(msgEndWord(query)), "gui");
+			const regex = new RegExp(messageToRegexQuery(msgEndWord(query))[0], "gui");
 			return text.match(regex);
 		}
 
@@ -379,7 +377,7 @@ suite('Extension Test Suite', () => {
 
 		// beginWord + endWord = wholeWord which is managed by vscode
 		// So no transformation and regex query = query
-		assert.deepStrictEqual(messageToRegexQuery(msgWholeWord("irst/Hello/World/La")), "irst/Hello/World/La");
-		assert.deepStrictEqual(messageToRegexQuery(msgWholeWord("irst_Hello_World")),    "irst_Hello_World");
+		assert.deepStrictEqual(messageToRegexQuery(msgWholeWord("irst/Hello/World/La")), ["irst/Hello/World/La", true]);
+		assert.deepStrictEqual(messageToRegexQuery(msgWholeWord("irst_Hello_World")),    ["irst_Hello_World",    true]);
 	});
 });
