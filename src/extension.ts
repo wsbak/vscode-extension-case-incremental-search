@@ -379,8 +379,8 @@ class CaseSearchPanel {
 				</fieldset>
 				<fieldset id="options">
 					<legend>Search</legend>
-					<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case" /> <label for="sensitive-case">Sensitive case</label></div>
 					<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
+					<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case" /> <label for="sensitive-case">Sensitive case</label></div>
 					<div><input type="checkbox"                       id="whole-word"                          /> <label for="whole-word">Whole word</label></div>
 					<div><input type="checkbox" ${beginWordState}     id="begin-word"      class="subCheckbox" /> <label for="begin-word">Begin word</label></div>
 					<div><input type="checkbox" ${endWordState}       id="end-word"        class="subCheckbox" /> <label for="end-word">End word</label></div>
