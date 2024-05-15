@@ -11,3 +11,7 @@
 ## 0.0.3  
 
 - fix: case search panel stays empty after restart  
+
+## 0.0.4  
+
+- feat: add Begin/End Word when no case selected  
