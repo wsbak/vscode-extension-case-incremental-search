@@ -75,7 +75,8 @@
 
     // Compute dependencies
     initializeMainCheckboxSubCheckboxes();
-    manage(incrementalSearch);
+    // When incrementalSearch, okButton is useless
+    hideButton(okButton, incrementalSearch?.checked)
 
     // Focus on textToSearch at beginning
     textToSearch?.focus();
