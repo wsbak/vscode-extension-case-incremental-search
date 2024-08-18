@@ -15,3 +15,7 @@
 ## 0.0.4  
 
 - feat: add Begin/End Word when no case selected  
+
+## 0.0.5  
+
+- mod: move "Incremental search" checkbox to settings

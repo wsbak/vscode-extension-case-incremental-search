@@ -20,6 +20,16 @@
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"configuration": {
+			"title": "Case Incremental Search",
+			"properties": {
+				"case-incremental-search.useIncrementalSearch": {
+					"type": "boolean",
+					"default": true,
+					"description": "Use incremental search."
+				}
+			}
+		},
 		"commands": [
 			{
 				"command": "case-incremental-search.start",

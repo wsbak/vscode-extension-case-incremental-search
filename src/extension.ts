@@ -330,8 +330,7 @@ class CaseSearchPanel {
 		const nonce = getNonce();
 
 		const context = this._context;
-		// okButtonState computed by main.js
-		const incrementalSearchState = readCheckbox(context, "incrementalSearch", true);
+
 		const sensitiveCaseState     = readCheckbox(context, "sensitiveCase",     true);
 		const beginWordState         = readCheckbox(context, "beginWord");
 		const endWordState           = readCheckbox(context, "endWord");
@@ -345,7 +344,15 @@ class CaseSearchPanel {
 		const capitalCaseState       = readCheckbox(context, "capitalCase",    true);
 		const pathCaseState          = readCheckbox(context, "pathCase",       true);
 		// allCasesState computed by main.js
-	
+
+		var nonIncrementalSearch = 'hidden="hidden"';
+		// Use non incremental search ?
+		const configuration = vscode.workspace.getConfiguration('case-incremental-search');
+		const useIncrementalSearch = configuration.get<boolean>("useIncrementalSearch", true);
+		if (useIncrementalSearch === false) {
+			nonIncrementalSearch = '';    // visible
+		}
+
 		return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -385,8 +392,8 @@ class CaseSearchPanel {
 					<div><input type="checkbox" ${beginWordState}     id="begin-word"      class="subCheckbox" /> <label for="begin-word">Begin word</label></div>
 					<div><input type="checkbox" ${endWordState}       id="end-word"        class="subCheckbox" /> <label for="end-word">End word</label></div>
 				</fieldset>
-				<div><input type="checkbox" ${incrementalSearchState} id="incremental-search" /> <label for="incremental-search">Incremental search</label></div>
-				<button type="submit" id="okButton">OK</button>
+
+				<button ${nonIncrementalSearch} type="submit" id="okButton">OK</button>
 
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
