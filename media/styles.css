@@ -6,3 +6,10 @@
 .hidden {
 	visibility: hidden;
 }
+
+.container{
+    display: flex;
+}
+.right {
+    flex-grow: 1;
+}
