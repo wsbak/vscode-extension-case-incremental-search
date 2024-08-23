@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { ExtensionContext } from "vscode";
-import { paramCase, pascalCase, constantCase, snakeCase, camelCase, capitalCase, pathCase } from "change-case";
+import { SrcMmi } from "./mmi_src";
 
 
 // build regex which exclude letter/number/separator before the beginning or after the end
@@ -74,36 +74,12 @@ function removeDuplicates<T>(array: T[]): T[] {
 	return [...new Set(array)];
 }
 
-// Convert function with their separator
-const paramCaseData:    any[] = [paramCase,    "-"];
-const camelCaseData:    any[] = [camelCase,    ""];
-const pascalCaseData:   any[] = [pascalCase,   ""];
-const snakeCaseData:    any[] = [snakeCase,    "_"];
-const constantCaseData: any[] = [constantCase, "_"];
-const capitalCaseData:  any[] = [capitalCase,  " "];
-const pathCaseData:     any[] = [pathCase,     "/"];
-
-const convertFunctions: any = [
-	paramCaseData,
-	camelCaseData,
-	pascalCaseData,
-	snakeCaseData,
-	constantCaseData,
-	capitalCaseData,
-	pathCaseData,
-];
+const mmi = new SrcMmi();
 
 // build regex query with all cases selected
 // also returns matchWholeWord for the vscode command workbench.action.findInFiles
 function messageToRegexQuery(message: any): [string, boolean] {
-	let selectedCaseFunctions: any[] = [];
-	if (message.kebabCase)      { selectedCaseFunctions.push(paramCaseData); }
-	if (message.camelCase)      { selectedCaseFunctions.push(camelCaseData); }
-	if (message.pascalCase)     { selectedCaseFunctions.push(pascalCaseData); }
-	if (message.snakeCase)      { selectedCaseFunctions.push(snakeCaseData); }
-	if (message.upperSnakeCase) { selectedCaseFunctions.push(constantCaseData); }
-	if (message.capitalCase)    { selectedCaseFunctions.push(capitalCaseData); }
-	if (message.pathCase)       { selectedCaseFunctions.push(pathCaseData); }
+	const selectedCaseFunctions: any[] = mmi.caseManager.srcGetSelectedCaseFunctions(message);
 
 	if (selectedCaseFunctions.length <= 0) {
 		return buildRegexQueryNoCaseSelected(message.text, message);
@@ -135,22 +111,6 @@ function readCheckbox(context: ExtensionContext, name: string, defaultValue: boo
 	const checked = value ? "checked" : "";
 	// console.log(`readCheckbox ${name}=${checked}`);
 	return checked;
-}
-
-// Save status into context.workspaceState
-function saveStatus(context: ExtensionContext, message: any) {
-	context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
-	context.workspaceState.update("beginWord",         message.beginWord);
-	context.workspaceState.update("endWord",           message.endWord);
-	context.workspaceState.update("text",              message.text);
-
-	context.workspaceState.update("kebabCase",         message.kebabCase);
-	context.workspaceState.update("camelCase",         message.camelCase);
-	context.workspaceState.update("pascalCase",        message.pascalCase);
-	context.workspaceState.update("snakeCase",         message.snakeCase);
-	context.workspaceState.update("upperSnakeCase",    message.upperSnakeCase);
-	context.workspaceState.update("capitalCase",       message.capitalCase);
-	context.workspaceState.update("pathCase",          message.pathCase);
 }
 
   
@@ -231,6 +191,14 @@ class CaseSearchPanel {
 		this._context = context;
 		this._extensionUri = context.extensionUri;
 
+		{
+			const keys = this._context.workspaceState.keys();
+			console.log(keys);
+			// for (const key of keys) {
+			// 	this._context.workspaceState.update(key, undefined);
+			// }
+		}
+
 		// Set the webview's initial html content
 		this._update();
 
@@ -252,13 +220,17 @@ class CaseSearchPanel {
 		// Handle messages from the webview
 		this._panel.webview.onDidReceiveMessage(
 			message => {
+				if ('manager' in message) {
+					console.log(`manager message ${message.command} received`);
+					console.log(message);
+					mmi.srcManageManagerMessage(message, this._context);
+					return;
+				}
+
 				switch (message.command) {
-					case 'saveStatus':
-						console.log("saveStatus received");
-						saveStatus(this._context, message);
-						return;
-					case 'text-to-search': {
-						console.log("text-to-search received", message.text);
+					case 'main-instant':
+						console.log(`${message.command} received`, message.text);
+						this._saveMainStatus(this._context, message);
 						const [query, matchWholeWord] = messageToRegexQuery(message);
 						vscode.commands.executeCommand("workbench.action.findInFiles", {
 							query: query,
@@ -267,17 +239,28 @@ class CaseSearchPanel {
 							isCaseSensitive: message.sensitiveCase,
 							matchWholeWord: matchWholeWord,
 						});
-						saveStatus(this._context, message);
+						break;
 
-						// Set the focus back to the input
-						this._panel.webview.postMessage({ command: 'focus' });
+					default:
+						console.log(`${message.command} ??? received`, message);
 						return;
-					}
+				}
+				if (message.command === 'main-instant') {
+					// Set the focus back to the input
+					this._panel.webview.postMessage({ command: 'focus' });
 				}
 			},
 			null,
 			this._disposables
 		);
+	}
+
+	// Save status into context.workspaceState
+	private _saveMainStatus(context: ExtensionContext, message: any) {
+		context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
+		context.workspaceState.update("text",              message.text);
+
+		mmi.srcFromMainMessage(message, context);
 	}
 
 	public dispose() {
@@ -304,32 +287,30 @@ class CaseSearchPanel {
 		// Local path to media directory in the webview
 		const mediaPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media');
 
-		// Uri to load main script in the webview
-		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'main.js'));
+		// Uri to load scripts in the webview
+		const scriptUri         = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'main.js'));
+		const scriptMmiMediaUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'mmi_media.js'));
+		const scriptExportsUri  = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'exports.js'));
 
 		// Uri to load styles into webview
 		const stylesResetUri  = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'reset.css'));
 		const stylesMainUri   = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'vscode.css'));
 		const stylesStylesUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'styles.css'));
 
+
 		// Use a nonce to only allow specific scripts to be run
 		const nonce = getNonce();
 
 		const context = this._context;
+		mmi.srcInit(context);
 
-		const sensitiveCaseState     = readCheckbox(context, "sensitiveCase",     true);
-		const beginWordState         = readCheckbox(context, "beginWord");
-		const endWordState           = readCheckbox(context, "endWord");
-		// wholeWordState computed by main.js
-		const text                   = readString(  context, "text");
-		const kebabCaseState         = readCheckbox(context, "kebabCase",      true);
-		const camelCaseState         = readCheckbox(context, "camelCase",      true);
-		const pascalCaseState        = readCheckbox(context, "pascalCase",     true);
-		const snakeCaseState         = readCheckbox(context, "snakeCase",      true);
-		const upperSnakeCaseState    = readCheckbox(context, "upperSnakeCase", true);
-		const capitalCaseState       = readCheckbox(context, "capitalCase",    true);
-		const pathCaseState          = readCheckbox(context, "pathCase",       true);
-		// allCasesState computed by main.js
+		const wordHtml = mmi.wordManager.srcGetHtml();
+		const caseHtml = mmi.caseManager.srcGetHtml();
+		const filesToIncludeHtml = mmi.filesToIncludeManager.srcGetHtml();
+		const filesToExcludeHtml = mmi.filesToExcludeManager.srcGetHtml();
+
+		const sensitiveCaseState = readCheckbox(context, "sensitiveCase",     true);
+		const text               = readString(  context, "text");
 
 		return `<!DOCTYPE html>
 			<html lang="en">
@@ -351,26 +332,42 @@ class CaseSearchPanel {
 				<title>Case Search</title>
 			</head>
 			<body>
-				<fieldset id="cases">
-					<legend>Cases to search for</legend>
-					<div><input type="checkbox"                                            id="all-cases"        /> <label for="all-case"        >All</label></div>
-					<div><input type="checkbox" class="subCheckbox" ${kebabCaseState}      id="kebab-case"       /> <label for="kebab-case"      >kebab-case</label></div>
-					<div><input type="checkbox" class="subCheckbox" ${camelCaseState}      id="camel-case"       /> <label for="camel-case"      >camelCase</label></div>
-					<div><input type="checkbox" class="subCheckbox" ${pascalCaseState}     id="pascal-case"      /> <label for="pascal-case"     >PascalCase</label></div>
-					<div><input type="checkbox" class="subCheckbox" ${snakeCaseState}      id="snake-case"       /> <label for="snake-case"      >snake_case</label></div>
-					<div><input type="checkbox" class="subCheckbox" ${upperSnakeCaseState} id="upper-snake-case" /> <label for="upper-snake-case">UPPER_SNAKE_CASE</label></div>
-					<div><input type="checkbox" class="subCheckbox" ${capitalCaseState}    id="capital-case"     /> <label for="capital-case"    >Capital Case</label></div>
-					<div><input type="checkbox" class="subCheckbox" ${pathCaseState}       id="path-case"        /> <label for="path-case"       >path/case</label></div>
-				</fieldset>
-				<fieldset id="options">
-					<legend>Search</legend>
-					<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
-					<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case" /> <label for="sensitive-case">Sensitive case</label></div>
-					<div><input type="checkbox"                       id="whole-word"                          /> <label for="whole-word">Whole word</label></div>
-					<div><input type="checkbox" ${beginWordState}     id="begin-word"      class="subCheckbox" /> <label for="begin-word">Begin word</label></div>
-					<div><input type="checkbox" ${endWordState}       id="end-word"        class="subCheckbox" /> <label for="end-word">End word</label></div>
-				</fieldset>
+				<div>
+					<div class="container">
+						<div class="left">
+							<fieldset id="cases">
+								<legend>Cases to search for</legend>
+								${caseHtml}
+							</fieldset>
+						</div>
+						<div class="right">
+							<fieldset id="options">
+								<legend>Search</legend>
+								<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
+								<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case" /> <label for="sensitive-case">Sensitive case</label></div>
+								${wordHtml}
+							</fieldset>
+						</div>
+					</div>
+				</div>
 
+				<div class="container">
+					<div>
+						<fieldset>
+							<legend>Files to include</legend>
+							${filesToIncludeHtml}
+						</fieldset>
+					</div>
+					<div>
+						<fieldset>
+							<legend>Files to exclude</legend>
+							${filesToExcludeHtml}
+						</fieldset>
+					</div>
+				</div>
+
+				<script nonce="${nonce}" src="${scriptExportsUri}"></script>
+				<script nonce="${nonce}" src="${scriptMmiMediaUri}"></script>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;
@@ -389,7 +386,6 @@ function getNonce() {
 // Exports for test only
 export const exportedForTesting = {
 	buildRegexExcludePreceded, buildRegexExcludeFollowed,
-	paramCaseData, pascalCaseData, constantCaseData, snakeCaseData, camelCaseData, capitalCaseData, pathCaseData,
 	buildRegexQuery, buildRegexQueryNoCaseSelected,
 	messageToRegexQuery,
 };

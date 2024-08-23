@@ -3,9 +3,17 @@ import * as vscode from 'vscode';
 import { paramCase, pascalCase, constantCase, snakeCase, camelCase, capitalCase, pathCase } from "change-case";
 
 import { exportedForTesting } from '../extension';
-const { paramCaseData, pascalCaseData, constantCaseData, snakeCaseData, camelCaseData, capitalCaseData, pathCaseData } = exportedForTesting;
+import { SrcCaseManager } from "../mmi_src";
 const { buildRegexQuery, buildRegexQueryNoCaseSelected, messageToRegexQuery } = exportedForTesting;
 
+const caseManager = new SrcCaseManager();
+const paramCaseData    = caseManager.kebab.convertFctData;
+const camelCaseData    = caseManager.camel.convertFctData;
+const pascalCaseData   = caseManager.pascal.convertFctData;
+const snakeCaseData    = caseManager.snake.convertFctData;
+const constantCaseData = caseManager.upperSnake.convertFctData;
+const capitalCaseData  = caseManager.capital.convertFctData;
+const pathCaseData     = caseManager.path.convertFctData;
 
 // Build a message for transformQuery2RegExp & buildRegexQuery
 // booleanNames specifies the "field1,field2,...,fieldn" to set to true

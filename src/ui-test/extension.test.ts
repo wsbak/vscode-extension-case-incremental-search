@@ -10,7 +10,7 @@ const sleepMs = (ms: number) => new Promise(r => setTimeout(r, ms));
 // When it and describe are at the same level, it are executed first
 
 
-const caseIdArray = ["kebab-case", "camel-case", "pascal-case", "snake-case", "upper-snake-case", "capital-case", "path-case"];
+const caseIdArray = ["kebabCase-checkbox", "camelCase-checkbox", "pascalCase-checkbox", "snakeCase-checkbox", "upperSnakeCase-checkbox", "capitalCase-checkbox", "pathCase-checkbox"];
 
 interface CheckWords {
     whole: boolean;
@@ -55,22 +55,22 @@ describe('WebViews', function () {
         view = new WebView();
         await view.switchToFrame();
 
-        allCases          = await view.findWebElement(By.id('all-cases'));
-        kebabCase         = await view.findWebElement(By.id('kebab-case'));
-        camelCase         = await view.findWebElement(By.id('camel-case'));
-        pascalCase        = await view.findWebElement(By.id('pascal-case'));
-        snakeCase         = await view.findWebElement(By.id('snake-case'));
-        upperSnakeCase    = await view.findWebElement(By.id('upper-snake-case'));
-        capitalCase       = await view.findWebElement(By.id('capital-case'));
-        pathCase          = await view.findWebElement(By.id('path-case'));
+        allCases          = await view.findWebElement(By.id('case-checkbox'));
+        kebabCase         = await view.findWebElement(By.id('kebabCase-checkbox'));
+        camelCase         = await view.findWebElement(By.id('camelCase-checkbox'));
+        pascalCase        = await view.findWebElement(By.id('pascalCase-checkbox'));
+        snakeCase         = await view.findWebElement(By.id('snakeCase-checkbox'));
+        upperSnakeCase    = await view.findWebElement(By.id('upperSnakeCase-checkbox'));
+        capitalCase       = await view.findWebElement(By.id('capitalCase-checkbox'));
+        pathCase          = await view.findWebElement(By.id('pathCase-checkbox'));
         caseArray         = [kebabCase, camelCase, pascalCase, snakeCase, upperSnakeCase, capitalCase, pathCase];
 
         sensitiveCase     = await view.findWebElement(By.id('sensitive-case'));
         textToSearch      = await view.findWebElement(By.id('text-to-search'));
 
-        wholeWord         = await view.findWebElement(By.id('whole-word'));
-        beginWord         = await view.findWebElement(By.id('begin-word'));
-        endWord           = await view.findWebElement(By.id('end-word'));
+        wholeWord         = await view.findWebElement(By.id('word-checkbox'));
+        beginWord         = await view.findWebElement(By.id('beginWord-checkbox'));
+        endWord           = await view.findWebElement(By.id('endWord-checkbox'));
     };
 
     // --------------------------------------------------------------------------------
