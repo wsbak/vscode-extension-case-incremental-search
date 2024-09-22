@@ -18,4 +18,4 @@
 
 ## 0.0.5  
 
-- mod: move "Incremental search" checkbox to settings
+- mod: remove "Incremental search" checkbox and "OK" button

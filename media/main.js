@@ -4,8 +4,6 @@
 (function () {
     const vscode = acquireVsCodeApi();
 
-    const okButton          = document.getElementById('okButton');
-    const incrementalSearch = okButton?.getAttribute('hidden') === 'hidden';
     const sensitiveCase     = document.getElementById('sensitive-case');
     const wholeWord         = document.getElementById('whole-word');
     const beginWord         = document.getElementById('begin-word');
@@ -84,7 +82,6 @@
     function sendSearchCommand(command) {
         vscode.postMessage({
             command:           command,
-            incrementalSearch: incrementalSearch,
             sensitiveCase:     sensitiveCase?.checked,
             beginWord:         beginWord?.checked,
             endWord:           endWord?.checked,
@@ -100,25 +97,9 @@
     }
 
     function searchIncremental(event) {
-    
-        if (!incrementalSearch) {
-            focusItem = undefined;
-            sendSearchCommand('saveStatus');
-            return;
-        }
-    
         focusItem = event.target;
         sendSearchCommand('text-to-search');
     }
-
-    document.getElementById('okButton')?.addEventListener('click', () => {
-        sendSearchCommand('okButton');
-    });
-    textToSearch?.addEventListener("keyup", ({key}) => {
-        if (key === "Enter") {
-            sendSearchCommand('okButton');
-        }
-    });
 
     allCases?.      addEventListener('input', (event) => { manage(event); searchIncremental(event); });
     kebabCase?.     addEventListener('input', (event) => { manage(event); searchIncremental(event); });

@@ -39,9 +39,6 @@ describe('WebViews', function () {
     let beginWord: WebElement;
     let endWord: WebElement;
 
-    let useIncrementalSearch: boolean = true;  // initial setting value
-    let okButton: WebElement;
-
     before(async function () {
         this.timeout(8000);
         await beforeFunction();
@@ -74,8 +71,6 @@ describe('WebViews', function () {
         wholeWord         = await view.findWebElement(By.id('whole-word'));
         beginWord         = await view.findWebElement(By.id('begin-word'));
         endWord           = await view.findWebElement(By.id('end-word'));
-
-        okButton          = await view.findWebElement(By.id('okButton'));
     };
 
     // --------------------------------------------------------------------------------
@@ -122,10 +117,6 @@ describe('WebViews', function () {
             for (const elt of [wholeWord, beginWord, endWord]) {
                 expect(await elt.getAttribute('type')).has.string('checkbox');
             }
-        });
-
-        it('okButton', async function () {
-            expect(await okButton.getAttribute('type')).has.string('submit');
         });
     });
 
@@ -180,11 +171,6 @@ describe('WebViews', function () {
         expect(await sensitiveCase.isSelected()).equals(selected);
     };
 
-    async function checkOkButton(displayed: boolean) {
-        expect(await okButton.isDisplayed()).equals(displayed);
-        expect(await okButton.isEnabled()).equals(true);
-    };
-
     async function checkTextToSearch(text: string) {
         expect(await textToSearch.isDisplayed()).equals(true);
         expect(await textToSearch.isEnabled()).equals(true);
@@ -209,8 +195,6 @@ describe('WebViews', function () {
         await checkSensitiveCase(true);
         await checkTextToSearch('');
         await checkWords({whole: false, begin: false, end: false});
-        // if useIncrementalSearch, okButton is not visible
-        await checkOkButton(useIncrementalSearch === false);
     };
 
     // --------------------------------------------------------------------------------
@@ -438,66 +422,4 @@ describe('WebViews', function () {
         //     await textToSearch.clear();
         // });
     });
-
-    // --------------------------------------------------------------------------------
-    // --------------------------------------------------------------------------------
-    describe('Non incremental search', async function () {
-        it('Switch to non incremental search', async function () {
-            this.timeout(15000);
-
-            await afterFunction();  // mandatory
-
-            // Change useIncrementalSearch into settings
-            const settingsEditor = await new Workbench().openSettings();
-            const setting        = await settingsEditor.findSettingByID('case-incremental-search.useIncrementalSearch');
-            expect(setting).not.undefined;
-            
-            useIncrementalSearch = await setting.getValue() as boolean;
-            console.log("useIncrementalSearch", useIncrementalSearch);
-            expect(useIncrementalSearch).equals(true);
-
-            await setting.setValue(false);
-            useIncrementalSearch = await setting.getValue() as boolean;
-            console.log("useIncrementalSearch", useIncrementalSearch);
-            expect(useIncrementalSearch).equals(false);
-
-            // Go back to extension (new instance)
-            await new EditorView().closeAllEditors();
-            await beforeFunction();
-        });
-        it('begin', async function () {
-            await checkInitialState();
-        });
-        it('mutiple keys simultaneously', async function () {
-            await checkTextToSearch('');
-
-            await textToSearch.sendKeys('abcdefghijklm');
-            await checkTextToSearch('abcdefghijklm');
-            okButton.click();
-
-            await textToSearch.sendKeys('123456');
-            await checkTextToSearch('abcdefghijklm123456');
-            okButton.click();
-
-            await textToSearch.sendKeys("xyz");
-            await checkTextToSearch('abcdefghijklm123456xyz');
-            okButton.click();
-
-            await textToSearch.clear();
-        });
-        it('key by key', async function () {
-            await checkTextToSearch('');
-
-            const expected: string = "abcdefghijklm123456xyz";
-            for (const char of expected) {
-                await textToSearch.sendKeys(char);
-            }
-            await checkTextToSearch(expected);
-            okButton.click();
-
-            await textToSearch.clear();
-        });
-    });
-
-    // Still in "Non incremental search"
 });

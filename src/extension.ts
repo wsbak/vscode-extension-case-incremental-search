@@ -139,8 +139,6 @@ function readCheckbox(context: ExtensionContext, name: string, defaultValue: boo
 
 // Save status into context.workspaceState
 function saveStatus(context: ExtensionContext, message: any) {
-	context.workspaceState.update("incrementalSearch", message.incrementalSearch);
-
 	context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
 	context.workspaceState.update("beginWord",         message.beginWord);
 	context.workspaceState.update("endWord",           message.endWord);
@@ -259,18 +257,6 @@ class CaseSearchPanel {
 						console.log("saveStatus received");
 						saveStatus(this._context, message);
 						return;
-					case 'okButton':
-						console.log("okButton received");
-						const [query, matchWholeWord] = messageToRegexQuery(message);
-						vscode.commands.executeCommand("workbench.action.findInFiles", {
-							query: query,
-							triggerSearch: true,
-							isRegex: true,
-							isCaseSensitive: message.sensitiveCase,
-							matchWholeWord: matchWholeWord,
-						});
-						saveStatus(this._context, message);
-						return;
 					case 'text-to-search': {
 						console.log("text-to-search received", message.text);
 						const [query, matchWholeWord] = messageToRegexQuery(message);
@@ -345,14 +331,6 @@ class CaseSearchPanel {
 		const pathCaseState          = readCheckbox(context, "pathCase",       true);
 		// allCasesState computed by main.js
 
-		var nonIncrementalSearch = 'hidden="hidden"';
-		// Use non incremental search ?
-		const configuration = vscode.workspace.getConfiguration('case-incremental-search');
-		const useIncrementalSearch = configuration.get<boolean>("useIncrementalSearch", true);
-		if (useIncrementalSearch === false) {
-			nonIncrementalSearch = '';    // visible
-		}
-
 		return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -392,8 +370,6 @@ class CaseSearchPanel {
 					<div><input type="checkbox" ${beginWordState}     id="begin-word"      class="subCheckbox" /> <label for="begin-word">Begin word</label></div>
 					<div><input type="checkbox" ${endWordState}       id="end-word"        class="subCheckbox" /> <label for="end-word">End word</label></div>
 				</fieldset>
-
-				<button ${nonIncrementalSearch} type="submit" id="okButton">OK</button>
 
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
