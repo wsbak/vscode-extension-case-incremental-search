@@ -682,6 +682,20 @@ export class FilesToManager extends CheckboxManager {
     srcGetHtmlFinalRow(): string[] {
         return this.addElt.srcGetHtmls();
     }
+    protected srcManageManagerMessageMustStopAfterParent(message: Message): boolean {
+        if (message.command === 'remove') {
+            for (const elt of this.elts) {
+                if (elt.id in message) {
+                    if (elt.srcValue === false) {
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            console.error("srcManageManagerMessageMustStopAfterParent remove elt not found !!!");
+        }
+        return false;
+    }
     protected srcComputeFilesTo(): string {
         console.log("srcComputeFilesTo");
         const filesTo: string[] = [];
@@ -702,7 +716,12 @@ export class FilesToIncludeManager extends FilesToManager {
     }
 
     srcManageManagerMessage(message: Message, context: ExtensionContext) {
+        const stopAfterParent = this.srcManageManagerMessageMustStopAfterParent(message);
         super.srcManageManagerMessage(message, context);
+        if (stopAfterParent) {
+            return;
+        }
+
         switch (message.command) {
             case 'exec':
             case 'remove':
@@ -727,11 +746,16 @@ export class FilesToExcludeManager extends FilesToManager {
     }
 
     srcManageManagerMessage(message: Message, context: ExtensionContext) {
+        const stopAfterParent = this.srcManageManagerMessageMustStopAfterParent(message);
         super.srcManageManagerMessage(message, context);
+        if (stopAfterParent) {
+            return;
+        }
+
         switch (message.command) {
             case 'exec':
             case 'remove':
-                    import("vscode")
+                import("vscode")
                 .then((vscode) => {
                     vscode.commands.executeCommand("workbench.action.findInFiles", {
                         triggerSearch: true,
