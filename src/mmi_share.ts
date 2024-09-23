@@ -682,15 +682,12 @@ export class FilesToManager extends CheckboxManager {
     srcGetHtmlFinalRow(): string[] {
         return this.addElt.srcGetHtmls();
     }
-
-    protected srcComputeFilesTo(message: Message): string | null {
-        console.log("srcComputeFilesTo", message);
+    protected srcComputeFilesTo(): string {
+        console.log("srcComputeFilesTo");
         const filesTo: string[] = [];
         for (const elt of this.elts) {
-            if (elt.id in message) {
-                if (message[elt.id] === true) {
-                    filesTo.push(elt.label);
-                }
+            if (elt.srcValue) {
+                filesTo.push(elt.label);
             }
         }
         const filesToStr = filesTo.join(',');
@@ -708,11 +705,12 @@ export class FilesToIncludeManager extends FilesToManager {
         super.srcManageManagerMessage(message, context);
         switch (message.command) {
             case 'exec':
+            case 'remove':
                 import("vscode")
                 .then((vscode) => {
                     vscode.commands.executeCommand("workbench.action.findInFiles", {
                         triggerSearch: true,
-                        filesToInclude: this.srcComputeFilesTo(message),
+                        filesToInclude: this.srcComputeFilesTo(),
                     });
                 })
                 .catch((err) => {
@@ -732,11 +730,12 @@ export class FilesToExcludeManager extends FilesToManager {
         super.srcManageManagerMessage(message, context);
         switch (message.command) {
             case 'exec':
-                import("vscode")
+            case 'remove':
+                    import("vscode")
                 .then((vscode) => {
                     vscode.commands.executeCommand("workbench.action.findInFiles", {
                         triggerSearch: true,
-                        filesToExclude: this.srcComputeFilesTo(message),
+                        filesToExclude: this.srcComputeFilesTo(),
                     });
                 })
                 .catch((err) => {
