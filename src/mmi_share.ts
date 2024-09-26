@@ -19,29 +19,36 @@ class Checkbox {
 	private readonly checkboxId: string;                     // id inside html
 	private readonly checkboxLabelId: string;                // id inside html
     public           srcHtmlClasses: string = "";
-    public           label: string;  // label of html checkbox
+    public           label: string;            // label of html checkbox
+    private readonly labelWriteable: boolean;  // label is writeable (so saved and loaded)
     // if null, no save/load, should be a main checkbox, recomputed by main.js
 	private readonly srcDefaultValue: boolean | null;
 	public           srcValue: boolean | null;
     public  readonly media: {
-        htmlCheckbox: HTMLInputElement,       // element <checkboxId> from document
-        htmlCheckboxLabel: HTMLLabelElement,  // element <checkboxLabelId> from document
+        htmlCheckbox: HTMLInputElement,              // element <checkboxId> from document
+        htmlCheckboxLabel: HTMLInputElement | null,  // element <checkboxLabelId> from document, only if writeable
     } | null = null;
 
-    constructor(id: string, mediaDocument: Document | null, label: string, defaultValue: boolean | null) {
+    constructor(id: string,
+                mediaDocument: Document | null,    // null if builded by src
+                label: string | null,              // null if editable and so, label saved and loaded
+                defaultValue: boolean | null) {    // null if srcValue is not saved and loaded
         this.id = id;
         this.checkboxId = `${this.id}-checkbox`;
         this.checkboxLabelId = `${this.id}-label`;
-        this.label = label;
+        this.label = label !== null ? label : "";
+        this.labelWriteable = label !== null ? false : true;
         this.srcDefaultValue = defaultValue;
         this.srcValue = defaultValue;
 
         if (mediaDocument) {
             this.media = {
                 htmlCheckbox: mediaDocument.getElementById(this.checkboxId) as HTMLInputElement,
-                htmlCheckboxLabel: mediaDocument.getElementById(this.checkboxLabelId) as HTMLLabelElement,
+                htmlCheckboxLabel: this.labelWriteable ? mediaDocument.getElementById(this.checkboxLabelId) as HTMLInputElement : null,
             };
-            this.label = this.media.htmlCheckboxLabel.textContent!;
+            if (this.labelWriteable) {
+                this.label = this.media.htmlCheckboxLabel!.value!;
+            }
         }
     }
     mediaAddEventListener(method: any) {
@@ -52,6 +59,28 @@ class Checkbox {
         message[this.checkboxLabelId] = this.label;
         console.log(this.id, `mediaUpdateMessage message[${this.id}]`, message[this.id], `message[${this.checkboxLabelId}]`, message[this.checkboxLabelId]);
     }
+    mediaEditStart() {
+        const ie = document.getElementById(`${this.checkboxLabelId}`) as HTMLInputElement;
+        ie.removeAttribute("disabled");
+    }
+    mediaEditValid(managerId: string) {
+        const ie = document.getElementById(`${this.checkboxLabelId}`) as HTMLInputElement;
+        ie.setAttribute("disabled", "none");
+
+        // Save
+        this.label = this.media!.htmlCheckboxLabel!.value!;
+        console.log("mediaEditValid", "this.label", this.label);
+
+        // Send mod message
+        const message: Message = {
+            manager: managerId,
+            command: 'mod',
+            eltId: this.id,
+        };
+        this.mediaUpdateMessage(message);
+        console.log("mediaEditValid mediaSendMessage", message);
+        mediaSendMessage!(message);
+    }
 
     srcInit(context: ExtensionContext) {
         if (this.srcDefaultValue === null) {
@@ -59,8 +88,9 @@ class Checkbox {
             return;
         }
         this.srcValue = context.workspaceState.get<boolean>(this.id, this.srcDefaultValue);
-        // label can be not saved when hard-coded
-        this.label = context.workspaceState.get<string>(this.checkboxLabelId, this.label);
+        if (this.labelWriteable) {
+            this.label = context.workspaceState.get<string>(this.checkboxLabelId, this.label);
+        }
     }
     srcSaveStatus(context: ExtensionContext) {
         if (this.srcValue === null) {
@@ -68,7 +98,9 @@ class Checkbox {
             return;
         }
         context.workspaceState.update(this.id, this.srcValue);
-        context.workspaceState.update(this.checkboxLabelId, this.label);
+        if (this.labelWriteable) {
+            context.workspaceState.update(this.checkboxLabelId, this.label);
+        }
     }
     srcFromMessage(message: Message) {
         if (!(this.id in message)) {
@@ -76,43 +108,94 @@ class Checkbox {
             return;
         }
         this.srcValue = message[this.id];
-        this.label = message[this.checkboxLabelId];
+        if (this.labelWriteable) {
+            this.label = message[this.checkboxLabelId];
+        }
     }
     srcGetHtmls(): string[] {
         const classDecl = this.srcHtmlClasses !== '' ? `class="${this.srcHtmlClasses}"` : '';
         const state = this.srcValue ? "checked" : "";
-        const html = `<input type="checkbox" ${state} id="${this.checkboxId}" ${classDecl} /> <label for="${this.checkboxId}" id="${this.checkboxLabelId}">${this.label}</label>`;
+        const labelHtml = this.labelWriteable ?
+            `<input for="${this.checkboxId}" id="${this.checkboxLabelId}" type="text" value="${this.label}" class="input-as-label" disabled/>` : 
+            `<label for="${this.checkboxId}" id="${this.checkboxLabelId}">${this.label}</label>`;
+
+        const html = `<div class="container">
+                      <input type="checkbox" ${state} id="${this.checkboxId}" ${classDecl} />
+                      ${labelHtml}
+                      </div>`;
+        // TODO click on input this.checkboxLabelId does NOT change this.checkboxId (as it does for a label)
         return [html];
     }
 }
 
 export class EditAdapter {
 	public  readonly id: string;
+	private readonly editEltId: string;
 	private readonly removeEltId: string;
     private readonly media: {
+        editButton: HTMLButtonElement;
         removeButton: HTMLButtonElement;
     } | null = null;
 
     constructor(id: string, mediaDocument: Document | null) {
         this.id = id;
+        this.editEltId = `${this.id}-editElt`;
         this.removeEltId = `${this.id}-removeElt`;
 
         if (mediaDocument) {
             this.media = {
+                editButton: mediaDocument.getElementById(this.editEltId) as HTMLButtonElement,
                 removeButton: mediaDocument.getElementById(this.removeEltId) as HTMLButtonElement,
             };
         }
     }
 
-    mediaAddEventListener(method: any) {
+    mediaAddEventListenerEdit(method: any) {
+        this.media!.editButton.addEventListener('click', () => {
+            console.log("media.editButton input");
+            const editLabel = '\u{1F527}';   // "&#128295;"
+            const validLabel = '\u{2714}';   // "&#10004;"
+            let valid = false;
+            if (this.media!.editButton.textContent === editLabel) {
+                this.media!.editButton.textContent = validLabel;
+                valid = false;
+            }
+            else {
+                this.media!.editButton.textContent = editLabel;
+                valid = true;
+            }
+            method(this, valid);
+        });
+    }
+    mediaAddEventListenerRemove(method: any) {
         this.media!.removeButton.addEventListener('click', () => {
-            console.log("mediaRemoveButton input");
+            console.log("media.removeButton input");
             method(this);
         });
     }
 
     srcGetHtmls(): string[] {
-        return [`<button id="${this.removeEltId}">&#10134;</button>`];
+        return [
+            // edit
+            // `<button id="${this.editEltId}">&#9997;</button>`,
+            // `<button id="${this.editEltId}">&#9998;</button>`,
+            // `<button id="${this.editEltId}">&#128275;</button>`,
+            `<button id="${this.editEltId}">&#128295;</button>`,
+            // `<button id="${this.editEltId}">&#128393;</button>`,
+            // // `<button id="${this.editEltId}">&#128394;</button>`,
+            // // `<button id="${this.editEltId}">&#128395;</button>`,
+            // // `<button id="${this.editEltId}">&#128396;</button>`,
+            // `<button id="${this.editEltId}">&#128397;</button>`,
+
+            // // Valid
+            // // `<button id="${this.editEltId}">&#10003;</button>`,
+            // `<button id="${this.editEltId}">&#10004;</button>`,
+            // // `<button id="${this.editEltId}">&#9745;</button>`,
+            // // `<button id="${this.editEltId}">&#9166;</button>`,
+            // // `<button id="${this.editEltId}">&#9989;</button>`,
+
+            `<button id="${this.removeEltId}">&#10134;</button>`
+        ];
     }
 }
 
@@ -254,7 +337,16 @@ class CheckboxManager {
     mediaEltAddEventListener(elt: Checkbox) {
         elt.mediaAddEventListener((event: any) => { this.mediaEventListenerInnerMethod(event); });
         if (this.idToEditAdapters) {
-            this.idToEditAdapters[elt.id].mediaAddEventListener((_editAdapter: EditAdapter) => {
+            this.idToEditAdapters[elt.id].mediaAddEventListenerEdit((_editAdapter: EditAdapter, valid: boolean) => {
+                console.log(this.id, "mediaAddEventListenerEdit", elt.id, valid ? "valid" : "edit");
+                if (valid) {
+                    elt.mediaEditValid(this.id);
+                }
+                else {
+                    elt.mediaEditStart();
+                }
+            });
+            this.idToEditAdapters[elt.id].mediaAddEventListenerRemove((_editAdapter: EditAdapter) => {
                 delete this.idToEditAdapters![elt.id];
                 this.mediaRemoveChild(elt);
             });
@@ -401,6 +493,17 @@ class CheckboxManager {
                 const elt = this.srcBuildAndAddElt(message.eltIdToAdd, context)!;
                 elt.srcFromMessage(message);
                 this.srcSaveStatus(context);
+                return;
+
+            case 'mod':
+                for (const elt of this.elts) {
+                    if (elt.id === message.eltId) {
+                        elt.srcFromMessage(message);
+                        this.srcSaveStatus(context);
+                        return;
+                    }
+                }
+                console.error(`mod elt ${message.eltId} not found !!!`);
                 return;
 
             case 'remove':
@@ -641,6 +744,7 @@ export class CheckboxAdd {
     srcGetHtmls(): string[] {
         const htmls = [];
         htmls.push(`<input  id="${this.htmlLabelId }" type="text" placeholder="*.cpp,*.c,*.h">`);
+        htmls.push(``);
         htmls.push(`<button id="${this.htmlApplyId}">&#10133;</button>`);
         return htmls;
     }
@@ -668,7 +772,7 @@ export class FilesToManager extends CheckboxManager {
     }
     mediaBuildElt(eltName: string, document: Document): Checkbox | null {
         console.log("mediaBuildElt returns new Checkbox", eltName);
-        return new Checkbox(eltName, document, "", false);
+        return new Checkbox(eltName, document, null, false);
     }
     mediaAddEventListener(method: any) {
         super.mediaAddEventListener(method);
@@ -677,7 +781,7 @@ export class FilesToManager extends CheckboxManager {
 
     srcBuildElt(eltName: string, _context: ExtensionContext): Checkbox | null {
         console.log("srcBuildElt returns new Checkbox", eltName);
-        return new Checkbox(eltName, null, "", false);
+        return new Checkbox(eltName, null, null, false);
     }
     srcGetHtmlFinalRow(): string[] {
         return this.addElt.srcGetHtmls();
@@ -716,6 +820,8 @@ export class FilesToIncludeManager extends FilesToManager {
     }
 
     srcManageManagerMessage(message: Message, context: ExtensionContext) {
+        console.log(this.id, "srcManageManagerMessage", "message.command", message.command);
+
         const stopAfterParent = this.srcManageManagerMessageMustStopAfterParent(message);
         super.srcManageManagerMessage(message, context);
         if (stopAfterParent) {
@@ -724,6 +830,7 @@ export class FilesToIncludeManager extends FilesToManager {
 
         switch (message.command) {
             case 'exec':
+            case 'mod':
             case 'remove':
                 import("vscode")
                 .then((vscode) => {

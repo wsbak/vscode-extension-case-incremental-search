@@ -7,6 +7,13 @@
 	visibility: hidden;
 }
 
+/* Why !important is needed to override
+   vscode.css input:not([type='checkbox']), textarea */
+.input-as-label:disabled {
+    background-color: transparent !important;
+    border: none                  !important;
+}
+
 .container{
     display: flex;
 }
