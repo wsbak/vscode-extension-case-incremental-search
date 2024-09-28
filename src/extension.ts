@@ -191,6 +191,14 @@ class CaseSearchPanel {
 		this._context = context;
 		this._extensionUri = context.extensionUri;
 
+		{
+			const keys = this._context.workspaceState.keys();
+			console.log(keys);
+			// for (const key of keys) {
+			// 	this._context.workspaceState.update(key, undefined);
+			// }
+		}
+
 		// Set the webview's initial html content
 		this._update();
 
