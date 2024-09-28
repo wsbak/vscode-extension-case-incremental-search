@@ -30,14 +30,15 @@ class Checkbox {
     } | null = null;
 
     constructor(id: string,
-                mediaDocument: Document | null,    // null if builded by src
-                label: string | null,              // null if editable and so, label saved and loaded
-                defaultValue: boolean | null) {    // null if srcValue is not saved and loaded
+                mediaDocument: Document | null,           // null if builded by src
+                label: string | null,                     // null if editable and so, label saved and loaded
+                defaultValue: boolean | null,             // null if srcValue is not saved and loaded
+                labelWriteable: boolean | null = null) {  // false if null
         this.id = id;
         this.checkboxId = `${this.id}-checkbox`;
         this.checkboxLabelId = `${this.id}-label`;
         this.label = label !== null ? label : "";
-        this.labelWriteable = label !== null ? false : true;
+        this.labelWriteable = labelWriteable === null ? false : labelWriteable;
         this.srcDefaultValue = defaultValue;
         this.srcValue = defaultValue;
 
@@ -736,7 +737,7 @@ export class CheckboxAdd {
             console.log("mediaAddEventListener click");
 
             const id = this.manager.mediaGenerateNewChildId();
-            const html = this.manager.mediaGetNewEltHtmls(id, this.media!.label.value, "");
+            const html = this.manager.mediaGetNewEltHtmls(id, this.media!.label.value);
             this.manager.mediaAddChildHtml(id, html);
         });
     }
@@ -754,7 +755,7 @@ export class FilesToManager extends CheckboxManager {
     private readonly addElt: CheckboxAdd;
 
     constructor(id: string, mediaDocument: Document | null = null) {
-        let all                  = new Checkbox(`${id}All`,     mediaDocument, "All",     null);
+        const all = new Checkbox(`${id}All`, mediaDocument, "All", null);
 
         super(id, [], all, mediaDocument, true, true);
         this.addElt = new CheckboxAdd(this, this.addEltId, mediaDocument);
@@ -762,9 +763,9 @@ export class FilesToManager extends CheckboxManager {
         this.htmlTable = true;
     }
 
-    mediaGetNewEltHtmls(id: string, label: string, _text: string): string[] {
+    mediaGetNewEltHtmls(id: string, label: string): string[] {
         console.log(this.id, "mediaGetNewEltHtml", id);
-        const elt = new Checkbox(id, null, label, false);
+        const elt = new Checkbox(id, null, label, false, true);
         elt.srcHtmlClasses = "subCheckbox";
         const html = elt.srcGetHtmls();
         console.log(this.id, "mediaGetNewEltHtmls", html);
@@ -772,7 +773,7 @@ export class FilesToManager extends CheckboxManager {
     }
     mediaBuildElt(eltName: string, document: Document): Checkbox | null {
         console.log("mediaBuildElt returns new Checkbox", eltName);
-        return new Checkbox(eltName, document, null, false);
+        return new Checkbox(eltName, document, null, false, true);
     }
     mediaAddEventListener(method: any) {
         super.mediaAddEventListener(method);
@@ -781,7 +782,7 @@ export class FilesToManager extends CheckboxManager {
 
     srcBuildElt(eltName: string, _context: ExtensionContext): Checkbox | null {
         console.log("srcBuildElt returns new Checkbox", eltName);
-        return new Checkbox(eltName, null, null, false);
+        return new Checkbox(eltName, null, null, false, true);
     }
     srcGetHtmlFinalRow(): string[] {
         return this.addElt.srcGetHtmls();
