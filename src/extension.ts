@@ -293,9 +293,10 @@ class CaseSearchPanel {
 		const scriptExportsUri  = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'exports.js'));
 
 		// Uri to load styles into webview
-		const stylesResetUri  = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'reset.css'));
-		const stylesMainUri   = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'vscode.css'));
-		const stylesStylesUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'styles.css'));
+		const stylesResetUri     = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'reset.css'));
+		const stylesMainUri      = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'vscode.css'));
+		const stylesStylesUri    = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'styles.css'));
+		const stylesDraggableUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'draggable.css'));
 
 
 		// Use a nonce to only allow specific scripts to be run
@@ -325,9 +326,10 @@ class CaseSearchPanel {
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-				<link href="${stylesResetUri}"  rel="stylesheet">
-				<link href="${stylesMainUri}"   rel="stylesheet">
-				<link href="${stylesStylesUri}" rel="stylesheet">
+				<link href="${stylesResetUri}"     rel="stylesheet">
+				<link href="${stylesMainUri}"      rel="stylesheet">
+				<link href="${stylesStylesUri}"    rel="stylesheet">
+				<link href="${stylesDraggableUri}" rel="stylesheet">
 
 				<title>Case Search</title>
 			</head>

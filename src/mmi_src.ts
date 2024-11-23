@@ -160,6 +160,18 @@ class SrcCheckboxManager {
                 console.error(`No elt to remove in`, message);
                 return;
 
+            case 'list-order':
+                console.log("srcManageManagerMessage list", message.eltIds);
+                context.workspaceState.update(`${this.id}Elts`, message.eltIds);
+                // but srcSaveStatus will not care
+                // so must re-order this.elts
+                const eltsOldOrder: SrcCheckbox[] = this.elts.concat();
+                this.elts.length = 0;
+                for (const id of message.eltIds) {
+                    this.elts.push(eltsOldOrder.filter(elt => elt.id === id)[0]);
+                }
+                return;
+
             default:
                 console.error(this.id, `srcManageManagerMessage ${message.command} ???`, message);
                 return;

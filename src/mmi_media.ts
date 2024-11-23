@@ -3,6 +3,201 @@
 // - do not modify .js file
 // - execute npm script "compile-to-media" before F5
 
+
+
+
+class DraggableTable {
+    private tableId: string;
+    private table: HTMLElement;
+    private tbody: HTMLElement;
+    private onRowDropped: (rowDropped: Element) => void;
+    private currRow: Element | null;
+    private dragElem: HTMLElement | null;
+    private mouseDownX: number;
+    private mouseDownY: number;
+    private mouseX: number;
+    private mouseY: number;
+    private mouseDrag: boolean;
+    
+    constructor(tableId: string, onRowDropped: (rowDropped: Element) => void) {
+        this.tableId = tableId;
+        this.table = document.getElementById(tableId)!;
+        this.tbody = this.table.querySelector('tbody')!;
+        this.onRowDropped = onRowDropped;
+        this.currRow = null;
+        this.dragElem = null;
+        this.mouseDownX = 0;
+        this.mouseDownY = 0;
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.mouseDrag = false;
+
+        this.bindMouse();
+    }
+
+    bindMouse() {
+        // console.log(this.tableId, "bindMouse");
+
+        document.addEventListener('mousedown', (event) => {
+            // console.log(this.tableId, "mousedown");
+            if(event.button !== 0) {
+                // console.log(this.tableId, "event.button", event.button);
+                return true;
+            }
+
+            const target = this.getTargetRow(event.target);
+            if(target) {
+                this.currRow = target;
+                this.addDraggableRow(target);
+                this.currRow!.classList.add('is-dragging');
+
+                const coords = this.getMouseCoords(event);
+                this.mouseDownX = coords.x;
+                this.mouseDownY = coords.y;      
+
+                this.mouseDrag = true;
+                // console.log(this.tableId, "mousedown", "this.mouseDownX", this.mouseDownX, "this.mouseDownY", this.mouseDownY);
+            }
+            return true;
+        });
+
+        document.addEventListener('mousemove', (event) => {
+            if(!this.mouseDrag) {
+                // console.log(this.tableId, "mousemove", "no mouseDrag");
+                return;
+            }
+            // console.log(this.tableId, "mousemove");
+
+            const coords = this.getMouseCoords(event);
+            this.mouseX = coords.x - this.mouseDownX;
+            this.mouseY = coords.y - this.mouseDownY;  
+
+            this.moveRow(this.mouseX, this.mouseY);
+        });
+
+        document.addEventListener('mouseup', (_event) => {
+            if(!this.mouseDrag) {
+                return;
+            }
+            // console.log(this.tableId, "mouseup");
+
+            this.currRow!.classList.remove('is-dragging');
+            this.table.removeChild(this.dragElem!);
+
+            this.dragElem = null;
+            this.mouseDrag = false;
+
+            this.onRowDropped(this.currRow!);
+        });    
+    }
+
+    swapRow(row: any, index: number) {
+        const currIndex = Array.from(this.tbody.children).indexOf(this.currRow!);
+        const row1 = currIndex > index ? this.currRow : row;
+        const row2 = currIndex > index ? row : this.currRow;
+
+        this.tbody.insertBefore(row1, row2);
+    }
+
+    moveRow(x: number, y: number) {
+        this.dragElem!.style.transform = "translate3d(" + x + "px, " + y + "px, 0)";
+
+        const	dragElemPos = this.dragElem!.getBoundingClientRect();
+        const currStartY = dragElemPos.y;
+        const currEndY = currStartY + dragElemPos.height;
+        const rows = this.getRows();
+
+        for(var i = 0; i < rows.length; i++) {
+            const rowElem = rows[i];
+            const rowSize = rowElem.getBoundingClientRect();
+            const rowStartY = rowSize.y, rowEndY = rowStartY + rowSize.height;
+
+            if(this.currRow !== rowElem && this.isIntersecting(currStartY, currEndY, rowStartY, rowEndY)) {
+                if(Math.abs(currStartY - rowStartY) < rowSize.height / 2) {
+                    this.swapRow(rowElem, i);
+                }
+            }
+        }    
+    }
+
+    addDraggableRow(target: any) {
+        this.dragElem = target.cloneNode(true);
+        this.dragElem!.classList.add('draggable-table__drag');
+        this.dragElem!.style.height = this.getStyle(target, 'height');
+        this.dragElem!.style.background = this.getStyle(target, 'backgroundColor');
+
+        const td = this.dragElem!.querySelectorAll('.draggable-handler')[0] as HTMLElement;
+        td.style.cursor = "grabbing";
+
+        for(var i = 0; i < target.children.length; i++) {
+            const oldTD = target.children[i];
+            const newTD = this.dragElem!.children[i] as HTMLElement;
+            newTD.style.width = this.getStyle(oldTD, 'width');
+            newTD.style.height = this.getStyle(oldTD, 'height');
+            newTD.style.padding = this.getStyle(oldTD, 'padding');
+            newTD.style.margin = this.getStyle(oldTD, 'margin');
+        }      
+
+        this.table.appendChild(this.dragElem!);
+
+        const targetPos = target.getBoundingClientRect();
+        const dragElemPos = this.dragElem!.getBoundingClientRect();
+        // console.log(this.tableId, 'addDraggableRow', 'targetPos', targetPos, 'dragElemPos', dragElemPos);
+        this.dragElem!.style.bottom = (dragElemPos.y - targetPos.y) + "px";
+        this.dragElem!.style.left = "-1px";
+        // console.log(this.tableId, 'addDraggableRow', 'dragElem.style.bottom', this.dragElem!.style.bottom);
+
+        document.dispatchEvent(new MouseEvent('mousemove',
+            { view: window, cancelable: true, bubbles: true }
+        ));    
+    }  
+
+    // Return all rows containing a td with draggable-handler class
+    getRows(): Element[] {
+        const rows = this.table.querySelectorAll('tbody tr');
+        const draggableRows = Array.from(rows).filter(row => row.querySelector('td.draggable-handler'));
+        return draggableRows;
+    }    
+
+    // Return the row containing the target 
+    getTargetRow(target: any): Element | null {
+        if(target.classList.contains('draggable-handler')) {
+            const row: Element = target.closest('tr')!;
+            if(this.table?.contains(row)) {
+                // console.log(this.tableId, 'draggable-handler found inside table');
+                return row;
+            }
+        }
+        return null;
+    }
+
+    getMouseCoords(event: any) {
+        return {
+            x: event.clientX,
+            y: event.clientY
+        };    
+    }  
+
+    getStyle(target: Element, styleName: any): any | null {
+        const compStyle = getComputedStyle(target);
+        const style = compStyle[styleName];
+
+        return style ? style : null;
+    }  
+
+    isIntersecting(min0: number, max0: number, min1: number, max1: number) {
+        return Math.max(min0, max0) >= Math.min(min1, max1) &&
+               Math.min(min0, max0) <= Math.max(min1, max1);
+    }  
+}
+  
+
+
+
+
+
+
+
 type Message = { [key: string]: any };
 
 let mediaSendMessage: ((message: Message) => void) | null = null;
@@ -55,7 +250,7 @@ class MediaCheckbox {
     }
     mediaAddEventListenerEdit(method: any) {
         this.htmlEditable!.editButton!.addEventListener('click', () => {
-            console.log("media.editButton input");
+            // console.log("media.editButton input");
             const editLabel = '\u{1F527}';   // "&#128295;"
             const validLabel = '\u{2714}';   // "&#10004;"
             let valid = false;
@@ -72,14 +267,14 @@ class MediaCheckbox {
     }
     mediaAddEventListenerRemove(method: any) {
         this.htmlEditable!.removeButton!.addEventListener('click', () => {
-            console.log("media.removeButton input");
+            // console.log("media.removeButton input");
             method(this);
         });
     }
     mediaUpdateMessage(message: Message) {
         message[this.id] = this.htmlCheckbox!.checked;
         message[this.checkboxLabelId] = this.label;
-        console.log(this.id, `mediaUpdateMessage message[${this.id}]`, message[this.id], `message[${this.checkboxLabelId}]`, message[this.checkboxLabelId]);
+        // console.log(this.id, `mediaUpdateMessage message[${this.id}]`, message[this.id], `message[${this.checkboxLabelId}]`, message[this.checkboxLabelId]);
     }
     mediaEditStart() {
         const ie = document.getElementById(`${this.checkboxLabelId}`) as HTMLInputElement;
@@ -91,7 +286,7 @@ class MediaCheckbox {
 
         // Save
         this.label = this.htmlEditable!.htmlCheckboxLabel!.value!;
-        console.log("mediaEditValid", "this.label", this.label);
+        // console.log("mediaEditValid", "this.label", this.label);
 
         // Send mod message
         const message: Message = {
@@ -100,7 +295,7 @@ class MediaCheckbox {
             eltId: this.id,
         };
         this.mediaUpdateMessage(message);
-        console.log("mediaEditValid mediaSendMessage", message);
+        // console.log("mediaEditValid mediaSendMessage", message);
         mediaSendMessage!(message);
     }
 
@@ -139,7 +334,10 @@ class MediaCheckbox {
 
             );
             // remove button
-            htmls.push( `<button id="${this.removeEltId}">&#10134;</button>`);
+            htmls.push(`<button id="${this.removeEltId}">&#10134;</button>`);
+
+            // drag&drop
+            htmls.push("=");
         }
         return htmls;
     }
@@ -153,8 +351,9 @@ class MediaCheckboxManager {
     private readonly autonomous: boolean;
     public  readonly htmlTable: boolean;
     private          eventListenerMethod: any;  // null until mediaAddEventListener, still null if autonomous
-    public           editable: {              // only if editable
+    public           editable: {                // only if editable
         addElt: MediaCheckboxAdd;
+        draggableTable: DraggableTable;
     } | null = null;
 
 	constructor(id: string,
@@ -185,20 +384,21 @@ class MediaCheckboxManager {
             for (const idx in descendants) {
                 const htmlElt = descendants[idx] as HTMLElement;
                 if (! (htmlElt instanceof HTMLElement)) {
-                    console.log(this.id, `MediaCheckboxManager htmlElt`, htmlElt, "ignored");
+                    // console.log(this.id, `MediaCheckboxManager htmlElt`, htmlElt, "ignored");
                     continue;
                 }
                 const id = htmlElt.getAttribute("id")!;
                 const label = htmlElt.getAttribute("label")!;
                 const value = htmlElt.getAttribute("value")! === "true";
                 const editable = htmlElt.getAttribute("editable")! === "true";
-                console.log(this.id, `MediaCheckboxManager Elt ${label} ${value} ${editable}`, htmlElt);
+                // console.log(this.id, `MediaCheckboxManager Elt ${label} ${value} ${editable}`, htmlElt);
 
                 this.mediaAddNewChildNoMessage(id, "Elt",  label, value, editable);
             }
             if (editable) {
                 this.editable = {
-                    addElt: new MediaCheckboxAdd(this, this.addEltId)
+                    addElt: new MediaCheckboxAdd(this, this.addEltId),
+                    draggableTable: new DraggableTable(`${id}-draggable-table`, (row) => this.mediaRowDropped(row)),
                 };
                 this.mediaAddNewChildHtml(this.addEltId, this.editable.addElt.getHtmls());
                 this.editable.addElt.mediaInit();
@@ -211,15 +411,45 @@ class MediaCheckboxManager {
     mediaGetHtml(): string {
         let html = "";
         if (this.htmlTable) {
-            html += `<table>`;
+            html += `<table id="${this.id}-draggable-table" class="draggable-table">`;
             html += `<tbody>`;
             html += `</tbody>`;
             html += `</table>`;
         }
         return html;
     }
+    mediaRowDropped(_row: Element) {
+        // console.log(this.id, "mediaRowDropped", row);
+
+        // Retrieve the new order of the rows
+        const eltIds: string[] = [];
+        {
+            const srcGroup = document.getElementById(this.id) as HTMLElement;
+            const descendants = srcGroup.getElementsByClassName("subCheckbox");
+            for (const idx in descendants) {
+                const htmlElt = descendants[idx] as HTMLElement;
+                if (! (htmlElt instanceof HTMLElement)) {
+                    // console.log(this.id, `MediaCheckboxManager htmlElt`, htmlElt, "ignored");
+                    continue;
+                }
+                const id = htmlElt.getAttribute("id")!;
+                eltIds.push(id.replace('-checkbox', ''));
+            }
+        }
+
+        // Send list message
+        const message: Message = {
+            manager: `${this.id}`,
+            command: 'list-order',
+             eltIds: eltIds,
+        };
+        // console.log(this.id, "mediaRowDropped mediaSendMessage", message);
+        mediaSendMessage!(message);
+
+        // Sort this.elts is useless
+    }
     mediaRemoveChild(elt: MediaCheckbox) {
-        console.log(this.id, "mediaRemoveChild", elt);
+        // console.log(this.id, "mediaRemoveChild", elt);
 
         // Send remove message
         const message: Message = {
@@ -227,7 +457,7 @@ class MediaCheckboxManager {
             command: 'remove',
         };
         message[elt.id] = true;
-        console.log(this.id, "mediaRemoveChild mediaSendMessage", message);
+        // console.log(this.id, "mediaRemoveChild mediaSendMessage", message);
         mediaSendMessage!(message);
 
         // Remove html
@@ -236,7 +466,7 @@ class MediaCheckboxManager {
         
         // Remove elt from this
         const index = this.elts.indexOf(elt, 0);
-        console.log(this.id, "mediaRemoveChild index", index);
+        // console.log(this.id, "mediaRemoveChild index", index);
         this.elts.splice(index, 1);
 
         this.mediaComputeMainCheckbox();
@@ -244,7 +474,7 @@ class MediaCheckboxManager {
     }
     mediaAddNewChild(label: string, value: boolean): MediaCheckbox {
         const eltId = this.mediaGenerateNewChildId();
-        console.log(this.id, "mediaAddNewChild", eltId);
+        // console.log(this.id, "mediaAddNewChild", eltId);
         const elt = this.mediaAddNewChildNoMessage(eltId, "Elt", label, value, true);
 
         this.mediaComputeMainCheckbox();
@@ -257,7 +487,7 @@ class MediaCheckboxManager {
             eltIdToAdd: eltId,
         };
         elt.mediaUpdateMessage(message);
-        console.log(this.id, "mediaAddNewChild mediaSendMessage", message);
+        // console.log(this.id, "mediaAddNewChild mediaSendMessage", message);
         mediaSendMessage!(message);
 
         return elt;
@@ -272,13 +502,13 @@ class MediaCheckboxManager {
         return `${this.id}-${max+1}`;
     }
     private mediaAddNewChildNoMessage(eltId: string, kind: string, label: string, value: boolean, editable: boolean): MediaCheckbox {
-        console.log(this.id, "mediaAddNewChildNoMessage", eltId);
+        // console.log(this.id, "mediaAddNewChildNoMessage", eltId);
         const elt = new MediaCheckbox(eltId, label, value, editable);
         if (kind === "Elt") {
             elt.htmlClasses = "subCheckbox";
         }
         const eltHtmls = elt.getHtmls();
-        console.log(this.id, "mediaAddNewChildNoMessage", eltId, eltHtmls);
+        // console.log(this.id, "mediaAddNewChildNoMessage", eltId, eltHtmls);
 
         // Add html into document
         this.mediaAddNewChildHtml(kind === "Elt" ? `${eltId}-elt` : `${eltId}-mainElt`, eltHtmls);
@@ -295,7 +525,7 @@ class MediaCheckboxManager {
         return elt;
     }
     private mediaAddNewChildHtml(eltId: string, eltHtmls: string[]) {
-        console.log(this.id, "mediaAddNewChildHtml", eltId, eltHtmls);
+        // console.log(this.id, "mediaAddNewChildHtml", eltId, eltHtmls);
 
         // Add html into document
         const newRow: HTMLElement = document.createElement(this.htmlTable ? 'tr' : 'div');
@@ -315,7 +545,7 @@ class MediaCheckboxManager {
             // not 1st child, should be elt checkbox or add checkbox
             const rowBeforeId = this.elts.length > 0 ? `${this.elts.at(-1)!.id}-elt` : `${this.mainElt.id}-mainElt`;
             const rowBefore = document.getElementById(rowBeforeId)!;
-            console.log(`rowBeforeId=${rowBeforeId} rowBefore=${rowBefore}`);
+            // console.log(`rowBeforeId=${rowBeforeId} rowBefore=${rowBefore}`);
             rowBefore.parentNode!.insertBefore(newRow, rowBefore.nextSibling);
         }
     }
@@ -323,7 +553,7 @@ class MediaCheckboxManager {
         elt.mediaAddEventListener((event: any) => { this.mediaEventListenerInnerMethod(event); });
         if (elt.editable) {
             elt.mediaAddEventListenerEdit((_elt: MediaCheckbox, valid: boolean) => {
-                console.log(this.id, "mediaAddEventListenerEdit", elt.id, valid ? "valid" : "edit");
+                // console.log(this.id, "mediaAddEventListenerEdit", elt.id, valid ? "valid" : "edit");
                 if (valid) {
                     elt.mediaEditValid(this.id);
                     this.editable!.addElt.mediaUpdateBehavior();
@@ -339,25 +569,18 @@ class MediaCheckboxManager {
     }
     mediaAddEventListener(method: any) {
         this.eventListenerMethod = method;
-
-        for (const elt of this.elts) {
-            this.mediaEltAddEventListener(elt);
-        }
-        if (this.mainElt) {
-            this.mainElt.mediaAddEventListener((event: any) => { this.mediaEventListenerInnerMethod(event); });
-        }
+        // eventListeners already setted
     }
     private mediaEventListenerInnerMethod(event: any) {
         this.mediaManage(event);
 
         if (this.eventListenerMethod) {
-            console.log(this.id, "mediaAddEventListenerInner callback call method");
+            // console.log(this.id, "mediaAddEventListenerInner callback call method");
             this.eventListenerMethod(event);
         }
         else {
-            console.log(this.id, "mediaAddEventListenerInner callback call mediaBuildMessage");
+            // console.log(this.id, "mediaAddEventListenerInner callback call mediaBuildMessage");
             const message = this.mediaBuildMessage();
-            console.log(this.id, "mediaAddEventListenerInner callback call mediaSendMessage");
             mediaSendMessage!(message);
         }
     }
@@ -418,7 +641,16 @@ class MediaCheckboxManager {
         let html = "";
         if (this.htmlTable) {
             for (const eltHtml of eltHtmls) {
-                html += `<td>${eltHtml}</td>`;
+                if (eltHtml === "=") {
+                    // &#8661;      https://www.w3schools.com/charsets/tryit.asp?deci=8661      large bold arrow
+                    // &#8691;      https://www.w3schools.com/charsets/tryit.asp?deci=8691      large arrow
+                    // &#8597;      https://www.w3schools.com/charsets/tryit.asp?deci=8597
+                    // &#8693;      https://www.w3schools.com/charsets/tryit.asp?deci=8693      double arrow
+                    html += `<td class="draggable-handler">&#8597;</td>`;
+                }
+                else {
+                    html += `<td>${eltHtml}</td>`;
+                }
             }
         }
         else {
@@ -488,11 +720,11 @@ export class MediaCheckboxAdd {
     }
     mediaAddEventListener() {
         this.media!.label.addEventListener('input', () => {
-            console.log(this.id, `mediaAddEventListener label input = ${this.media!.label.value}`);
+            // console.log(this.id, `mediaAddEventListener label input = ${this.media!.label.value}`);
             this.mediaUpdateBehavior();
         });
         this.media!.button.addEventListener('click', () => {
-            console.log(this.id, "mediaAddEventListener button click");
+            // console.log(this.id, "mediaAddEventListener button click");
             this.manager.mediaAddNewChild(this.media!.label.value, false);
         });
     }
@@ -506,15 +738,21 @@ export class MediaCheckboxAdd {
     }
 }
 
-export class MediaFilesToIncludeManager extends MediaCheckboxManager {
-    constructor() {
-        super("filesToInclude", "All", true, true);
+export class MediaFilesToManager extends MediaCheckboxManager {
+    constructor(id: string) {
+        super(id, "All", true, true);
     }
 }
 
-export class MediaFilesToExcludeManager extends MediaCheckboxManager {
+export class MediaFilesToIncludeManager extends MediaFilesToManager {
     constructor() {
-        super("filesToExclude", "All", true, true);
+        super("filesToInclude");
+    }
+}
+
+export class MediaFilesToExcludeManager extends MediaFilesToManager {
+    constructor() {
+        super("filesToExclude");
     }
 }
 
