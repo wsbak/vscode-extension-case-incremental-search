@@ -644,9 +644,10 @@ class MediaCheckboxManager {
                 if (eltHtml === "=") {
                     // &#8661;      https://www.w3schools.com/charsets/tryit.asp?deci=8661      large bold arrow
                     // &#8691;      https://www.w3schools.com/charsets/tryit.asp?deci=8691      large arrow
-                    // &#8597;      https://www.w3schools.com/charsets/tryit.asp?deci=8597
                     // &#8693;      https://www.w3schools.com/charsets/tryit.asp?deci=8693      double arrow
-                    html += `<td class="draggable-handler">&#8597;</td>`;
+                    // &#8597;      https://www.w3schools.com/charsets/tryit.asp?deci=8597
+                    // html += `<td class="draggable-handler">&#8597;</td>`;
+                    html += `<td class="draggable-handler"><i class="codicon codicon-gripper draggable-handler"/></td>`;
                 }
                 else {
                     html += `<td>${eltHtml}</td>`;

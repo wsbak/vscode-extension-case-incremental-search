@@ -140,7 +140,9 @@ function getWebviewOptions(extensionUri: vscode.Uri): vscode.WebviewOptions {
 		enableScripts: true,
 
 		// And restrict the webview to only loading content from our extension's `media` directory.
-		localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
+		localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media'),
+			                 vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'dist')
+		]
 	};
 }
 
@@ -297,7 +299,7 @@ class CaseSearchPanel {
 		const stylesMainUri      = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'vscode.css'));
 		const stylesStylesUri    = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'styles.css'));
 		const stylesDraggableUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'draggable.css'));
-
+		const codiconsUri        = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.css'));
 
 		// Use a nonce to only allow specific scripts to be run
 		const nonce = getNonce();
@@ -322,7 +324,7 @@ class CaseSearchPanel {
 					Use a content security policy to only allow loading images from https or from our extension directory,
 					and only allow scripts that have a specific nonce.
 				-->
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}';">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource}; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}';">
 
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -330,6 +332,7 @@ class CaseSearchPanel {
 				<link href="${stylesMainUri}"      rel="stylesheet">
 				<link href="${stylesStylesUri}"    rel="stylesheet">
 				<link href="${stylesDraggableUri}" rel="stylesheet">
+				<link href="${codiconsUri}"        rel="stylesheet">
 
 				<title>Case Search</title>
 			</head>
