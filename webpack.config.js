@@ -46,4 +46,42 @@ const extensionConfig = {
     level: "log", // enables logging required for problem matchers
   },
 };
-module.exports = [ extensionConfig ];
+
+/** @type WebpackConfig */
+const mediaConfig = {
+  target: 'web', // The target is a web browser
+  mode: 'none',
+  entry: {
+    mmi_media: './src/mmi_media.ts' // add entry point for media/mmi_media.ts
+  },
+  output: {
+    path: path.resolve(__dirname, 'media'),
+    filename: '[name].js',
+    library: {
+      type: 'var',
+      name: 'mmi_media'
+    }
+  },
+  resolve: {
+    extensions: ['.ts', '.js']
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: 'ts-loader'
+          }
+        ]
+      }
+    ]
+  },
+  devtool: 'nosources-source-map',
+  infrastructureLogging: {
+    level: "log",
+  },
+};
+
+module.exports = [ extensionConfig, mediaConfig ];

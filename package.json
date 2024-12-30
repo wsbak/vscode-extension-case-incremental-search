@@ -36,18 +36,17 @@
 		]
 	},
 	"scripts": {
+		"clean": "rimraf out dist media/mmi_media.js*",
 		"vscode:prepublish": "npm run package",
-		"copy-to-media": "copyfiles --flat out/mmi_media.js media/",
-		"compile-to-media": "npm run compile-tests && npm run copy-to-media",
-		"compile": "webpack && npm run copy-to-media",
-		"watch": "npm run compile-to-media && webpack --watch",
-		"package": "npm run compile-to-media && webpack --mode production --devtool hidden-source-map",
+		"compile": "webpack",
+		"watch": "webpack --watch",
+		"package": "webpack --mode production --devtool hidden-source-map",
 		"compile-tests": "tsc -p . --outDir out",
 		"watch-tests": "tsc -p . -w --outDir out",
 		"pretest": "npm run compile-tests && npm run compile && npm run lint",
 		"lint": "eslint src --ext ts",
 		"test": "vscode-test",
-		"ui-test": "extest setup-and-run './out/ui-test/**/*.test.js' -u -i -r . -e ./test-extensions"
+		"ui-test": "npm run compile-tests && extest setup-and-run './out/ui-test/**/*.test.js' -u -i -r . -e ./test-extensions"
 	},
 	"devDependencies": {
 		"@types/chai": "^4.3.14",

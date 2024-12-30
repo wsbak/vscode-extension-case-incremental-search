@@ -4,7 +4,7 @@
 (function () {
     const vscode = acquireVsCodeApi();
 
-    const mmi = new MediaMmi((message) => { vscode.postMessage(message); });
+    const mmi = new mmi_media.MediaMmi((message) => { vscode.postMessage(message); });
 
     const sensitiveCase = document.getElementById('sensitive-case');
     const textToSearch  = document.getElementById('text-to-search');
