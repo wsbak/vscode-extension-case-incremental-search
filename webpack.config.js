@@ -52,7 +52,7 @@ const mediaConfig = {
   target: 'web', // The target is a web browser
   mode: 'none',
   entry: {
-    mmi_media: './src/mmi_media.ts' // add entry point for media/mmi_media.ts
+    mmi_media: './src/mmi_media.ts' // the entry point of mmi_media part
   },
   output: {
     path: path.resolve(__dirname, 'media'),
