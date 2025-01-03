@@ -157,9 +157,9 @@ class Checkbox {
     async check() {
         expect(await this.checkbox.isSelected()).equals(this.expected.selected);
     }
-    async restore(before: Checkbox) {
-        this.expected.label = before.expected.label;
-        this.expected.selected = before.expected.selected;
+    async restore(previous: Checkbox) {
+        this.expected.label = previous.expected.label;
+        this.expected.selected = previous.expected.selected;
     }
     async select() {
         expect(this.expected.selected).equals(false);
@@ -188,7 +188,7 @@ class Cases {
     public  readonly path: Checkbox;
     public  readonly elts: Checkbox[];  // All previous except all
 
-    static async new(view: WebView): Promise<Cases> {
+    static async new(view: WebView, previous: Cases | undefined): Promise<Cases> {
         const all = new Checkbox("case-checkbox",
                                  await view.findWebElement(By.id('case-label')),
                                  await view.findWebElement(By.id('case-checkbox')),
@@ -229,8 +229,14 @@ class Cases {
                                    await view.findWebElement(By.id('pathCase-checkbox')),
                                    "path/case",
                                    true);
-        const elt = new Cases(all, kebab, camel, pascal, snake, upperSnake, capital, path);
-        return elt;
+        const instance = new Cases(all, kebab, camel, pascal, snake, upperSnake, capital, path);
+        if (previous) {
+            for (const elt of [instance.all, ...instance.elts]) {
+                const previousElt = previous.retrieve(elt.id);
+                elt.restore(previousElt);
+            }
+        }
+        return instance;
     }
     private constructor(all: Checkbox,
                 kebab: Checkbox,
@@ -267,12 +273,6 @@ class Cases {
         await this.all.check();
         for (const elt of this.elts) {
             await elt.check();
-        }
-    }
-    async restore(before: Cases) {
-        for (const elt of [this.all, ...this.elts]) {
-            const beforeElt = before.retrieve(elt.id);
-            elt.restore(beforeElt);
         }
     }
     async selectAll() {
@@ -331,7 +331,7 @@ class Word {
     public  readonly beginCheckbox: Checkbox;
     public  readonly endCheckbox: Checkbox;
 
-    static async new(view: WebView): Promise<Word> {
+    static async new(view: WebView, previous: Word | undefined): Promise<Word> {
         const whole = new Checkbox("word",
                                    await view.findWebElement(By.id('word-label')),
                                    await view.findWebElement(By.id('word-checkbox')),
@@ -347,8 +347,13 @@ class Word {
                                  await view.findWebElement(By.id('endWord-checkbox')),
                                  "End word",
                                  false);
-        const elt = new Word(whole, begin, end);
-        return elt;
+        const instance = new Word(whole, begin, end);
+        if (previous) {
+            await instance.wholeCheckbox.restore(previous.wholeCheckbox);
+            await instance.beginCheckbox.restore(previous.beginCheckbox);
+            await instance.endCheckbox.restore(previous.endCheckbox);
+        }
+        return instance;
     }
     private constructor(wholeCheckbox: Checkbox, beginCheckbox: Checkbox, endCheckbox: Checkbox) {
         this.wholeCheckbox = wholeCheckbox;
@@ -370,11 +375,6 @@ class Word {
         await this.wholeCheckbox.check();
         await this.beginCheckbox.check();
         await this.endCheckbox.check();
-    }
-    async restore(before: Word) {
-        await this.wholeCheckbox.restore(before.wholeCheckbox);
-        await this.beginCheckbox.restore(before.beginCheckbox);
-        await this.endCheckbox.restore(before.endCheckbox);
     }
     async wholeSelect() {
         await this.wholeCheckbox.select();
@@ -473,8 +473,8 @@ class EditableCheckbox {
         expect(await this.editButton.check());
         expect(await this.removeButton.check());
     };
-    restore(before: EditableCheckbox) {
-        this.expected.selected = before.expected.selected;
+    restore(previous: EditableCheckbox) {
+        this.expected.selected = previous.expected.selected;
     }
 }
 
@@ -484,8 +484,9 @@ class FilesTo {
     public  readonly allCheckbox: Checkbox;
     public  readonly addEditableCheckbox: AddEditableCheckbox;
     private readonly elts: EditableCheckbox[] = [];
+    private readonly defaultEltLabels: string[] = [];
 
-    static async new(view: WebView, id: string): Promise<FilesTo> {
+    static async new(view: WebView, id: string, previous: FilesTo | undefined): Promise<FilesTo> {
         const all = new Checkbox(id,
                                  await view.findWebElement(By.id(`${id}-label`)),
                                  await view.findWebElement(By.id(`${id}-checkbox`)),
@@ -493,8 +494,39 @@ class FilesTo {
                                  false);
         const add = new AddEditableCheckbox(await view.findWebElement(By.id(`${id}-addElt-label`)),
                                             await view.findWebElement(By.id(`${id}-addElt-apply`)));
-        const elt = new FilesTo(view, id, all, add);
-        return elt;
+        const instance = new FilesTo(view, id, all, add);
+
+        if (previous) {
+            // Restore expected values as previous
+            // addEditableCheckbox : nothing to restore
+            for (const previousElt of previous.elts) {
+                const elt = await EditableCheckbox.new(instance.view, previousElt.id, previousElt.subId, previousElt.label.expected.label);
+                elt.restore(previousElt);
+                instance.elts.push(elt);
+            }
+            if (instance.elts.length > 0) {
+                instance.allCheckbox.expected.selected = instance.elts.every(elt => elt.expected.selected);
+            }
+        }
+        else {
+            if (id === 'filesToInclude') {
+                instance.defaultEltLabels.push("*.cpp,*.c,*.h");
+                instance.defaultEltLabels.push("*.js,*.ts");
+                instance.defaultEltLabels.push("*.java,*.kt");
+                instance.defaultEltLabels.push("*.py");
+                instance.defaultEltLabels.push("*.ini,*.conf");
+                instance.defaultEltLabels.push("*.xml,*.json,*.yml");
+            }
+            else {
+                instance.defaultEltLabels.push("*.o,*.a,*.dll,*.pyc");
+                instance.defaultEltLabels.push("*.log,*.logs");
+            }
+            for (const defaultEltLabel of instance.defaultEltLabels) {
+                await instance.addNewCheckboxElt(defaultEltLabel);
+            }
+        }
+
+        return instance;
     }
     // constructor can not be async
     private constructor(view: WebView, id: string, allCheckbox: Checkbox, addEditableCheckbox: AddEditableCheckbox) {
@@ -508,7 +540,7 @@ class FilesTo {
         await this.addEditableCheckbox.checkOnce();
     }
     async checkInitialState() {
-        expect(this.elts.length).equals(0);
+        expect(this.elts.length).equals(this.defaultEltLabels.length);
         expect(this.allCheckbox.expected.selected).equals(false);
         await this.addEditableCheckbox.checkInitialState();
         await this.check();
@@ -540,16 +572,7 @@ class FilesTo {
         // The new item is not selected, so all is automatically unselected
         this.allCheckbox.expected.selected = false;
 
-        let max = -1;
-        for (const elt of this.elts) {
-            max = Math.max(max, elt.subId);
-        }
-        const eltSubId = max + 1;
-
-        const elt = await EditableCheckbox.new(this.view, `${this.id}-${eltSubId}`, eltSubId, label);
-        await elt.checkOnce();
-
-        this.elts.push(elt);
+        const elt = await this.addNewCheckboxElt(label);
         await this.check();
         return elt;
     }
@@ -561,6 +584,19 @@ class FilesTo {
         this.addEditableCheckbox.addButton.expected.enabled = false;
         // Check button is disabled
         await this.addEditableCheckbox.check();
+    }
+    private async addNewCheckboxElt(label: string): Promise<EditableCheckbox> {
+        let max = -1;
+        for (const elt of this.elts) {
+            max = Math.max(max, elt.subId);
+        }
+        const eltSubId = max + 1;
+
+        const elt = await EditableCheckbox.new(this.view, `${this.id}-${eltSubId}`, eltSubId, label);
+        await elt.checkOnce();
+
+        this.elts.push(elt);
+        return elt;
     }
     async selectAll() {
         await this.allCheckbox.select();
@@ -595,6 +631,19 @@ class FilesTo {
         await this.check();
     }
     async remove(elt: EditableCheckbox, expectAllSelected: boolean) {
+        await this.removeBase(elt);
+        this.allCheckbox.expected.selected = expectAllSelected;
+        await this.check();
+    }
+    async removeAll() {
+        while (this.elts.length > 0) {
+            await this.removeBase(this.elts[0]);
+        }
+        this.allCheckbox.expected.selected = false;
+        await this.check();
+    }
+    // All checkbox not managed and no check 
+    private async removeBase(elt: EditableCheckbox) {
         await elt.removeButton.button.click();
 
         this.elts.forEach((item, index) => {
@@ -602,8 +651,15 @@ class FilesTo {
                 this.elts.splice(index, 1);
             }
         });
-        this.allCheckbox.expected.selected = expectAllSelected;
-        await this.check();
+    }
+    retrieveByLabel(label: string): EditableCheckbox {
+        for (const elt of this.elts) {
+            if (elt.label.expected.label === label) {
+                return elt;
+            }
+        }
+        expect(false).equals(true);
+        return this.elts[0];  // to avoid compilation error
     }
     async editStart(elt: EditableCheckbox) {
         expect(elt.editButton.expected.label).equals(elt.editButton.editLabel);
@@ -634,24 +690,44 @@ class FilesTo {
         // Check WebElements are in the same order
         await this.checkOrder();
     }
-    // Restore expected values as before
-    async restore(before: FilesTo) {
-        // addEditableCheckbox : nothing to restore
-
-        let allSelected = true;
-        for (const beforeElt of before.elts) {
-            const elt = await EditableCheckbox.new(this.view, beforeElt.id, beforeElt.subId, beforeElt.label.expected.label);
-            elt.restore(beforeElt);
-            this.elts.push(elt);
-            if (elt.expected.selected === false) {
-                allSelected = false;
-            }
-        }
-        this.allCheckbox.expected.selected = allSelected;
-    }
     getSideBarTextExpected(): string {
         const selectedElts = this.elts.filter(elt => elt.expected.selected);
         return selectedElts.map(elt => elt.label.expected.label).join(',');
+    }
+}
+
+class Mmi {
+    public readonly cases: Cases;
+    public readonly sensitiveCase: WebElement;
+    public readonly textToSearch: WebElement;
+    public readonly word: Word;
+    public readonly filesToInclude: FilesTo;
+    public readonly filesToExclude: FilesTo;
+
+    static async new(view: WebView, previous: Mmi | undefined = undefined): Promise<Mmi> {
+        const cases             = await Cases.new(view, previous ? previous.cases : undefined);
+        const sensitiveCase     = await view.findWebElement(By.id('sensitive-case'));
+        const textToSearch      = await view.findWebElement(By.id('text-to-search'));
+        const word              = await Word.new(view, previous ? previous.word : undefined);
+        const filesToInclude    = await FilesTo.new(view, 'filesToInclude', previous ? previous.filesToInclude : undefined);
+        const filesToExclude    = await FilesTo.new(view, 'filesToExclude', previous ? previous.filesToExclude : undefined);
+
+        const elt = new Mmi(cases, sensitiveCase, textToSearch, word, filesToInclude, filesToExclude);
+        return elt;
+    }
+    // constructor can not be async
+    private constructor(cases: Cases,
+                        sensitiveCase: WebElement,
+                        textToSearch: WebElement,
+                        word: Word,
+                        filesToInclude: FilesTo,
+                        filesToExclude: FilesTo) {
+        this.cases = cases;
+        this.sensitiveCase = sensitiveCase;
+        this.textToSearch = textToSearch;
+        this.word = word;
+        this.filesToInclude = filesToInclude;
+        this.filesToExclude = filesToExclude;
     }
 }
 
@@ -662,46 +738,35 @@ enum SideBarStatus {
 }
 class SideBar {
     private readonly view: WebView;
-    private readonly cases: Cases;
-    private readonly sensitiveCase: WebElement;
-    private readonly textToSearch: WebElement;
-    private readonly word: Word;
-    private readonly filesToInclude: FilesTo;
-    private readonly filesToExclude: FilesTo;
+    private readonly mmi: Mmi;
     private          status: SideBarStatus = SideBarStatus.SearchNone;
 
     constructor(view: WebView,
-                cases: Cases,
-                sensitiveCase: WebElement,
-                textToSearch: WebElement,
-                word: Word,
-                filesToInclude: FilesTo,
-                filesToExclude: FilesTo) {
+                mmi: Mmi,
+                previous: SideBar | undefined = undefined) {
         this.view = view;
-        this.cases = cases;
-        this.sensitiveCase = sensitiveCase;
-        this.textToSearch = textToSearch;
-        this.word = word;
-        this.filesToInclude = filesToInclude;
-        this.filesToExclude = filesToExclude;
+        this.mmi = mmi;
+        this.status = previous ? previous.status : SideBarStatus.SearchNone;
     }
     async checkFirstState() {
         expect(this.status).equals(SideBarStatus.SearchNone);
-        await this.check();
+        await this.checkCurrentState();
     }
     async checkSearch() {
         if (this.status < SideBarStatus.SearchWithoutFiles) {
             this.status = SideBarStatus.SearchWithoutFiles;
         }
-        await this.check();
+        await this.checkCurrentState();
     }
     async checkSearchSelectFiles() {
         if (this.status < SideBarStatus.SearchWithFiles) {
             this.status = SideBarStatus.SearchWithFiles;
         }
-        await this.check();
+        await this.checkCurrentState();
     }
-    private async check() {
+    // Use previous methods
+    // Use this method only if you do not know the expected status (e.g using some describe.only)
+    async checkCurrentState() {
         switch (this.status) {
             case SideBarStatus.SearchNone:         await this.checkSearchNone();   break;
             case SideBarStatus.SearchWithoutFiles: await this.checkSearchCommon(); break;
@@ -718,8 +783,8 @@ class SideBar {
         expect(title).equals("EXPLORER");
     }
     private async checkSearchCommon() {
-        const textToSearch = await this.textToSearch.getAttribute("value");
-        const isSensitiveCaseSelected = await this.sensitiveCase.isSelected();
+        const textToSearch = await this.mmi.textToSearch.getAttribute("value");
+        const isSensitiveCaseSelected = await this.mmi.sensitiveCase.isSelected();
 
         await this.view.switchBack();
 
@@ -751,8 +816,8 @@ class SideBar {
 
         // <div custom-hover="true" class="monaco-custom-toggle codicon codicon-whole-word" tabindex="0" role="checkbox" aria-checked="false" aria-label="Match Whole Word (Alt+W)" style="color: inherit;"></div>
         const wholeWordChecked     = await this.isButtonChecked(contentElt, 'codicon-whole-word');
-        expect(wholeWordChecked).equals(this.word.wholeCheckbox.expected.selected &&
-                                        this.cases.elts.every(elt => ! elt.expected.selected));
+        expect(wholeWordChecked).equals(this.mmi.word.wholeCheckbox.expected.selected &&
+                                        this.mmi.cases.elts.every(elt => ! elt.expected.selected));
 
         // <div custom-hover="true" class="monaco-custom-toggle codicon codicon-regex checked" tabindex="0" role="checkbox" aria-checked="true" aria-label="Use Regular Expression (Alt+R)" style="color: var(--vscode-inputOption-activeForeground); border-color: var(--vscode-inputOption-activeBorder); background-color: var(--vscode-inputOption-activeBackground);"></div>
         const regexChecked         = await this.isButtonChecked(contentElt, 'codicon-regex');
@@ -782,8 +847,8 @@ class SideBar {
 
         const filesToIncludeText = await filesToInclude.getAttribute('value');
         const filesToExcludeText = await filesToExclude.getAttribute('value');
-        expect(filesToIncludeText).equals(this.filesToInclude.getSideBarTextExpected());
-        expect(filesToExcludeText).equals(this.filesToExclude.getSideBarTextExpected());
+        expect(filesToIncludeText).equals(this.mmi.filesToInclude.getSideBarTextExpected());
+        expect(filesToExcludeText).equals(this.mmi.filesToExclude.getSideBarTextExpected());
     }
     private async isButtonChecked(contentElt: WebElement, className: string): Promise<boolean> {
         const button: WebElement = await contentElt.findElement(By.className(className));
@@ -795,13 +860,7 @@ class SideBar {
 describe('WebViews', function () {
 
     let view: WebView;
-
-    let cases: Cases;
-    let sensitiveCase: WebElement;
-    let textToSearch: WebElement;
-    let word: Word;
-    let filesToInclude: FilesTo;
-    let filesToExclude: FilesTo;
+    let mmi: Mmi;
     let sideBar: SideBar;
 
     before(async function () {
@@ -814,19 +873,15 @@ describe('WebViews', function () {
     });
 
     // --------------------------------------------------------------------------------
-    async function beforeFunction() {
+    async function beforeFunction(previousMmi: Mmi | undefined = undefined,
+                                  previousSideBar: SideBar | undefined = undefined) {
         await new Workbench().executeCommand('case-incremental-search.start');
         await sleepMs(500);
         view = new WebView();
         await view.switchToFrame();
 
-        cases             = await Cases.new(view);
-        sensitiveCase     = await view.findWebElement(By.id('sensitive-case'));
-        textToSearch      = await view.findWebElement(By.id('text-to-search'));
-        word              = await Word.new(view);
-        filesToInclude    = await FilesTo.new(view, 'filesToInclude');
-        filesToExclude    = await FilesTo.new(view, 'filesToExclude');
-        sideBar           = new SideBar(view, cases, sensitiveCase, textToSearch, word, filesToInclude, filesToExclude);
+        mmi     = await Mmi.new(view, previousMmi);
+        sideBar = new SideBar(view, mmi, previousSideBar);
     };
 
     // --------------------------------------------------------------------------------
@@ -849,7 +904,7 @@ describe('WebViews', function () {
     // --------------------------------------------------------------------------------
     // retrieve a FilesTo instance by its id
     function retrieveFilesToById(filesToId: string): FilesTo {
-        for (const elt of [filesToInclude, filesToExclude]) {
+        for (const elt of [mmi.filesToInclude, mmi.filesToExclude]) {
             if (elt.id === filesToId) {
                 return elt;
             }
@@ -863,48 +918,48 @@ describe('WebViews', function () {
     // --------------------------------------------------------------------------------
     describe('check once types', async function () {
         it('cases', async function () {
-            await cases.checkOnce();
+            await mmi.cases.checkOnce();
         });
 
         it('sensitiveCase', async function () {
-            expect(await sensitiveCase.getAttribute('type')).equals('checkbox');
+            expect(await mmi.sensitiveCase.getAttribute('type')).equals('checkbox');
         });
 
         it('textToSearch', async function () {
-            expect(await textToSearch.getAttribute('type')).equals('text');
+            expect(await mmi.textToSearch.getAttribute('type')).equals('text');
         });
 
         it('words', async function () {
-            await word.checkOnce();
+            await mmi.word.checkOnce();
         });
 
         it('filesTo', async function () {
-            await filesToInclude.checkOnce();
-            await filesToExclude.checkOnce();
+            await mmi.filesToInclude.checkOnce();
+            await mmi.filesToExclude.checkOnce();
         });
     });
 
     // --------------------------------------------------------------------------------
     async function checkSensitiveCase(selected: boolean) {
-        expect(await sensitiveCase.isDisplayed()).equals(true);
-        expect(await sensitiveCase.isEnabled()).equals(true);
-        expect(await sensitiveCase.isSelected()).equals(selected);
+        expect(await mmi.sensitiveCase.isDisplayed()).equals(true);
+        expect(await mmi.sensitiveCase.isEnabled()).equals(true);
+        expect(await mmi.sensitiveCase.isSelected()).equals(selected);
     };
 
     async function checkTextToSearch(text: string) {
-        expect(await textToSearch.isDisplayed()).equals(true);
-        expect(await textToSearch.isEnabled()).equals(true);
-        expect(await textToSearch.getAttribute("value")).equals(text);
+        expect(await mmi.textToSearch.isDisplayed()).equals(true);
+        expect(await mmi.textToSearch.isEnabled()).equals(true);
+        expect(await mmi.textToSearch.getAttribute("value")).equals(text);
     };
 
     // --------------------------------------------------------------------------------
     async function checkInitialState() {
-        await cases.checkInitialState();
+        await mmi.cases.checkInitialState();
         await checkSensitiveCase(true);
         await checkTextToSearch('');
-        await word.checkInitialState();
-        await filesToInclude.checkInitialState();
-        await filesToExclude.checkInitialState();
+        await mmi.word.checkInitialState();
+        await mmi.filesToInclude.checkInitialState();
+        await mmi.filesToExclude.checkInitialState();
     };
 
     // --------------------------------------------------------------------------------
@@ -921,42 +976,42 @@ describe('WebViews', function () {
 
         // --------------------------------------------------------------------------------
         it('unselect allCases', async function () {
-            await cases.unselectAll();
-            await word.checkInitialState();
+            await mmi.cases.unselectAll();
+            await mmi.word.checkInitialState();
             await sideBar.checkSearch();  // check that regex is unselected
         });
 
         // --------------------------------------------------------------------------------
         it('select allCases', async function () {
-            await cases.selectAll();
+            await mmi.cases.selectAll();
             await checkInitialState();
         });
 
         // --------------------------------------------------------------------------------
         caseIdArray.forEach((caseId) => {
             it(`unselect/select 1 case ${caseId}`, async function () {
-                await cases.unselectById(caseId);
-                await cases.selectById(caseId);
+                await mmi.cases.unselectById(caseId);
+                await mmi.cases.selectById(caseId);
             });
         });
 
         // --------------------------------------------------------------------------------
         it('unselect allCases', async function () {
-            await cases.unselectAll();
-            await word.checkInitialState();
+            await mmi.cases.unselectAll();
+            await mmi.word.checkInitialState();
         });
 
         // --------------------------------------------------------------------------------
         caseIdArray.forEach((caseId) => {
             it(`select/unselect 1 case ${caseId}`, async function () {
-                await cases.selectById(caseId);
-                await cases.unselectById(caseId);
+                await mmi.cases.selectById(caseId);
+                await mmi.cases.unselectById(caseId);
             });
         });
 
         // --------------------------------------------------------------------------------
         it('select allCases', async function () {
-            await cases.selectAll();
+            await mmi.cases.selectAll();
             await checkInitialState();
         });
     });
@@ -965,28 +1020,28 @@ describe('WebViews', function () {
     // --------------------------------------------------------------------------------
     describe('Begin/End/Whole Word', async function () {
         it('Whole Word', async function () {
-            await word.wholeSelect();
+            await mmi.word.wholeSelect();
             await sideBar.checkSearch();  // check that whole word is selected
-            await word.wholeUnselect();
+            await mmi.word.wholeUnselect();
         });
         it('Begin Word', async function () {
-            await word.beginSelect();
-            await word.beginUnselect();
+            await mmi.word.beginSelect();
+            await mmi.word.beginUnselect();
         });
         it('End Word', async function () {
-            await word.endSelect();
-            await word.endUnselect();
+            await mmi.word.endSelect();
+            await mmi.word.endUnselect();
         });
         it('Begin + End Word select', async function () {
-            await word.beginSelect();
-            await word.endSelect();
+            await mmi.word.beginSelect();
+            await mmi.word.endSelect();
         });
         it('Begin + End Word unselect', async function () {
-            await word.beginUnselect();
-            await word.endUnselect();
+            await mmi.word.beginUnselect();
+            await mmi.word.endUnselect();
         });
         it('checkInitialState', async function () {
-            await word.checkInitialState();
+            await mmi.word.checkInitialState();
         });
     });
 
@@ -998,12 +1053,12 @@ describe('WebViews', function () {
             await checkSensitiveCase(true);
         });
         it('select sensitiveCase', async function () {
-            await sensitiveCase.click();
+            await mmi.sensitiveCase.click();
             await sideBar.checkSearch();  // check that sensitive case is unselected
             await checkSensitiveCase(false);
         });
         it('unselect sensitiveCase', async function () {
-            await sensitiveCase.click();
+            await mmi.sensitiveCase.click();
             await checkSensitiveCase(true);
         });
     });
@@ -1018,12 +1073,12 @@ describe('WebViews', function () {
 
             const expected: string = "abcdefghijklm123456xyz";
             for (const char of expected) {
-                await textToSearch.sendKeys(char);
+                await mmi.textToSearch.sendKeys(char);
             }
             await checkTextToSearch(expected);
             await sideBar.checkSearch();
 
-            await textToSearch.clear();
+            await mmi.textToSearch.clear();
         });
         // Send mutiple keys simultaneously has random behavior
         // Perhaps keys are entered when input does not have the focus
@@ -1031,50 +1086,50 @@ describe('WebViews', function () {
         // it('mutiple keys simultaneously 1', async function () {
         //     await checkTextToSearch('');
 
-        //     await textToSearch.sendKeys("abcdefghijklm");
+        //     await mmi.textToSearch.sendKeys("abcdefghijklm");
         //     await sleepMs(100);
         //     // KO with sleepMs(100): abcd
         //     await checkTextToSearch('abcdefghijklm');
 
-        //     await textToSearch.sendKeys("123456");
+        //     await mmi.textToSearch.sendKeys("123456");
         //     await sleepMs(100);
         //     // KO with sleepMs(100): abcdefghijklm1234
         //     await checkTextToSearch('abcdefghijklm123456');
 
-        //     await textToSearch.clear();
+        //     await mmi.textToSearch.clear();
         // });
         // it('mutiple keys simultaneously 2', async function () {
         //     await checkTextToSearch('');
 
-        //     await textToSearch.sendKeys("abcdefghi");
+        //     await mmi.textToSearch.sendKeys("abcdefghi");
         //     await sleepMs(100);
         //     // KO without sleepMs:   abc
         //     // KO with sleepMs(100): abcdabcdefgh
         //     await checkTextToSearch('abcdefghi');
 
-        //     await textToSearch.sendKeys("123456");
+        //     await mmi.textToSearch.sendKeys("123456");
         //     await sleepMs(100);
         //     // KO with sleepMs(100): abcdefghijklm12ab123
         //     await checkTextToSearch('abcdefghi123456');
 
-        //     await textToSearch.clear();
+        //     await mmi.textToSearch.clear();
         // });
         // it('mutiple keys 3', async function () {
         //     await checkTextToSearch('');
 
-        //     await textToSearch.sendKeys("abcdefghijklm");
+        //     await mmi.textToSearch.sendKeys("abcdefghijklm");
         //     await sleepMs(100);
         //     // KO without sleepMs:   abcabc
         //     // KO with sleepMs(100): abcdabcdefghabc
         //     // KO with sleepMs(100): abcde
         //     await checkTextToSearch('abcdefghijklm');
 
-        //     await textToSearch.sendKeys("123");
+        //     await mmi.textToSearch.sendKeys("123");
         //     await sleepMs(100);
         //     // KO with sleepMs(100): abcdefghijklm12ab123abc123
         //     await checkTextToSearch('abcdefghijklm123');
 
-        //     await textToSearch.clear();
+        //     await mmi.textToSearch.clear();
         // });
     });
 
@@ -1082,6 +1137,7 @@ describe('WebViews', function () {
     // --------------------------------------------------------------------------------
     filesToIdArray.forEach((filesToId) => {
         describe(`${filesToId}`, async function () {
+            this.timeout(4000);
             let filesTo: FilesTo;
             let cppElt: EditableCheckbox | undefined = undefined;
             let jsElt: EditableCheckbox | undefined = undefined;
@@ -1098,23 +1154,23 @@ describe('WebViews', function () {
                 await filesTo.addNewCheckboxForbidden("");
             });
             it('add item 1', async function () {
-                cppElt = await filesTo.addNewCheckbox("*.cpp,*.c,*.h");
+                cppElt = await filesTo.addNewCheckbox("*.cpp,*.cxx,*.h,*.hpp,*.hxx");
             });
             it('select so files appear in sidebar', async function () {
                 await filesTo.selectAll();
                 await sideBar.checkSearchSelectFiles();
             });
             it('add item 2', async function () {
-                jsElt = await filesTo.addNewCheckbox("*.js,*.ts");
+                jsElt = await filesTo.addNewCheckbox("*.js");
             });
             it('add item 3', async function () {
                 await filesTo.selectAll();
-                javaElt = await filesTo.addNewCheckbox("*.java");
+                javaElt = await filesTo.addNewCheckbox("*.java,*.js");
             });
             it('add item double forbidden', async function () {
-                await filesTo.addNewCheckboxForbidden("*.cpp,*.c,*.h");
-                await filesTo.addNewCheckboxForbidden("*.js,*.ts");
-                await filesTo.addNewCheckboxForbidden("*.java");
+                await filesTo.addNewCheckboxForbidden("*.cpp,*.cxx,*.h,*.hpp,*.hxx");
+                await filesTo.addNewCheckboxForbidden("*.js");
+                await filesTo.addNewCheckboxForbidden("*.java,*.js");
             });
             it('select item, so all selected', async function () {
                 await filesTo.select(javaElt!, true);
@@ -1131,10 +1187,10 @@ describe('WebViews', function () {
                 jsElt = undefined;
             });
             it('add item js again', async function () {
-                jsElt = await filesTo.addNewCheckbox("*.js,*.ts");
+                jsElt = await filesTo.addNewCheckbox("*.js");
             });
             it('add item ~cpp again', async function () {
-                cppElt = await filesTo.addNewCheckbox("*.cpp,*.h");
+                cppElt = await filesTo.addNewCheckbox("*.cpp,*.cxx,*.h");
             });
             it('select/unselect all', async function () {
                 await filesTo.selectAll();
@@ -1143,8 +1199,8 @@ describe('WebViews', function () {
             it('edit item cpp', async function () {
                 await filesTo.editStart(cppElt!);
 
-                cppElt!.label.label.sendKeys(",*.c");
-                cppElt!.label.expected.label = "*.cpp,*.h,*.c";
+                cppElt!.label.label.sendKeys(",*.hpp,*.hxx");
+                cppElt!.label.expected.label = "*.cpp,*.cxx,*.h,*.hpp,*.hxx";
                 await cppElt!.check();
 
                 await filesTo.editValid(cppElt!, true);
@@ -1168,38 +1224,43 @@ describe('WebViews', function () {
     // --------------------------------------------------------------------------------
     describe('save / restore', async function () {
         it('change state before close', async function () {
-            this.timeout(8000);
+            this.timeout(20000);
 
-            await cases.unselectById(cases.pascal.id);
-            await sensitiveCase.click();
+            await mmi.cases.unselectById(mmi.cases.pascal.id);
+            await mmi.sensitiveCase.click();
             const expected: string = "123abc";
             for (const char of expected) {
-                await textToSearch.sendKeys(char);
+                await mmi.textToSearch.sendKeys(char);
             }
-            await word.beginSelect();
+            await mmi.word.beginSelect();
             await sideBar.checkSearch();
 
             {
-                const jsElt = await filesToInclude.addNewCheckbox("*.js,*.ts");
-                const javaElt = await filesToInclude.addNewCheckbox("*.java");
+                const jsElt = await mmi.filesToInclude.addNewCheckbox("*.js");
+                const javaElt = await mmi.filesToInclude.addNewCheckbox("*.java,*.js");
+                await mmi.filesToInclude.remove(mmi.filesToInclude.retrieveByLabel("*.js,*.ts"), false);
+                const javaRealElt = mmi.filesToInclude.retrieveByLabel("*.java,*.kt");
+                await mmi.filesToInclude.select(javaRealElt, false);
 
-                const cppElt = await filesToInclude.addNewCheckbox("*.c");
-                await filesToInclude.editStart(cppElt);
+                const cppElt = await mmi.filesToInclude.addNewCheckbox("*.c");
+                await mmi.filesToInclude.editStart(cppElt);
                 await cppElt.label.label.sendKeys(",*.h");
                 cppElt.label.expected.label = "*.c,*.h";
                 await cppElt.check();
 
-                filesToInclude.dragAndDrop(cppElt, jsElt);  // so order is cpp, js, java
-                filesToInclude.dragAndDrop(jsElt, cppElt);  // so order is js, cpp, java
-                await filesToInclude.select(cppElt, false);
+                // order is ..., javaReal, ..., cpp, js, java
+                await mmi.filesToInclude.dragAndDrop(cppElt, javaRealElt);  // becomes ..., cpp, javaReal, ..., js, java
+                await mmi.filesToInclude.dragAndDrop(javaRealElt, cppElt);  // becomes ..., javaReal, cpp, ..., js, java
+                await mmi.filesToInclude.select(cppElt, false);
 
                 // no editValid on cppElt, so no save
                 // so rollback expected.label (because xxx.restore fail to do it)
                 cppElt.label.expected.label = "*.c";
             }
             {
-                const javaElt = await filesToExclude.addNewCheckbox("*.java");
-                await filesToExclude.select(javaElt, true);
+                const javaElt = await mmi.filesToExclude.addNewCheckbox("*.java,*.js");
+                await mmi.filesToExclude.select(javaElt, false);
+                await mmi.filesToExclude.select(mmi.filesToExclude.retrieveByLabel("*.log,*.logs"), false);
             }
             await sideBar.checkSearchSelectFiles();
         });
@@ -1207,29 +1268,46 @@ describe('WebViews', function () {
         it('close / open', async function () {
             this.timeout(8000);
             await afterFunction();
-
-            const casesSave = cases;
-            const wordSave = word;
-            const filesToIncludeSave = filesToInclude;
-            const filesToExcludeSave = filesToExclude;
-            await beforeFunction();
-            await cases.restore(casesSave);
-            await word.restore(wordSave);
-            await filesToInclude.restore(filesToIncludeSave);
-            await filesToExclude.restore(filesToExcludeSave);
+            await beforeFunction(mmi, sideBar);
         });
 
         it('check restored state', async function () {
-            await cases.check();
+            await mmi.cases.check();
             await checkSensitiveCase(false);
             await checkTextToSearch('123abc');
-            await word.check();
-            await filesToInclude.check();
-            await filesToInclude.checkOrder();
-            await filesToExclude.check();
-            await filesToExclude.checkOrder();
-            // The sideBar is absolutely not modifier
+            await mmi.word.check();
+            await mmi.filesToInclude.check();
+            await mmi.filesToInclude.checkOrder();
+            await mmi.filesToExclude.check();
+            await mmi.filesToExclude.checkOrder();
+            // The sideBar is absolutely not modified
             await sideBar.checkSearchSelectFiles();
+        });
+    });
+
+    // --------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------
+    describe('save / restore with filesTo empty', async function () {
+        it('change state before close', async function () {
+            this.timeout(20000);
+            await mmi.filesToInclude.removeAll();
+            await mmi.filesToExclude.removeAll();
+            await sideBar.checkCurrentState();
+        });
+
+        it('close / open', async function () {
+            this.timeout(8000);
+            await afterFunction();
+            await beforeFunction(mmi, sideBar);
+        });
+
+        it('check restored state', async function () {
+            await mmi.filesToInclude.check();
+            await mmi.filesToInclude.checkOrder();
+            await mmi.filesToExclude.check();
+            await mmi.filesToExclude.checkOrder();
+            // The sideBar is absolutely not modified
+            await sideBar.checkCurrentState();
         });
     });
 });

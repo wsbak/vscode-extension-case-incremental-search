@@ -210,9 +210,17 @@ class MediaCheckboxManager {
                 this.editable.addElt.mediaInit();
                 this.editable.addElt.mediaAddEventListener();
             }
+            const firstStart = srcGroup.getAttribute("first-start")! === "true";
+            if (firstStart && this.elts.length === 0) {
+                this.mediaOnFirstStart();
+            }
         }
         this.mediaComputeMainCheckbox();
         this.eventListenerMethod = null;
+    }
+    protected mediaOnFirstStart() {
+        // To override if needed
+        // E.g. add some default elts
     }
     mediaGetHtml(): string {
         let html = "";
@@ -555,11 +563,23 @@ export class MediaFilesToIncludeManager extends MediaFilesToManager {
     constructor() {
         super("filesToInclude");
     }
+    protected mediaOnFirstStart() {
+        this.mediaAddNewChild("*.cpp,*.c,*.h", false);
+        this.mediaAddNewChild("*.js,*.ts", false);
+        this.mediaAddNewChild("*.java,*.kt", false);
+        this.mediaAddNewChild("*.py", false);
+        this.mediaAddNewChild("*.ini,*.conf", false);
+        this.mediaAddNewChild("*.xml,*.json,*.yml", false);
+    }
 }
 
 export class MediaFilesToExcludeManager extends MediaFilesToManager {
     constructor() {
         super("filesToExclude");
+    }
+    protected mediaOnFirstStart() {
+        this.mediaAddNewChild("*.o,*.a,*.dll,*.pyc", false);
+        this.mediaAddNewChild("*.log,*.logs", false);
     }
 }
 
@@ -574,6 +594,7 @@ export class MediaMmi {
     private readonly otherManagers: MediaCheckboxManager[];
 
 	constructor(mediaSendMsg: any) {
+        mediaSendMessage = mediaSendMsg;
         this.caseManager           = new MediaCaseManager();
         this.wordManager           = new MediaWordManager();
         this.filesToIncludeManager = new MediaFilesToIncludeManager();
@@ -581,7 +602,6 @@ export class MediaMmi {
         this.mainManagers  = [this.caseManager, this.wordManager];
         this.otherManagers = [this.filesToIncludeManager, this.filesToExcludeManager];
         this.managers      = this.mainManagers.concat(this.otherManagers);
-        mediaSendMessage = mediaSendMsg;
     }
 
     mediaAddEventListener(method: any) {

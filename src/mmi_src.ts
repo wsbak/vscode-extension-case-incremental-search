@@ -68,17 +68,23 @@ class SrcCheckboxManager {
     public  readonly id: string;
 	public  readonly elts: SrcCheckbox[];
     private readonly editable: boolean;
+    private          firstStart: boolean;
 
 	constructor(id: string, elts: SrcCheckbox[],
                 editable: boolean = false,
                 _autonomous: boolean = false) {
         this.id = id;
-        this.elts = elts;           // can be empty until srcInit
+        this.elts = elts;           // can be empty until srcInit or if editable
         this.editable = editable;
+        this.firstStart = true;
     }
 
     srcInit(context: ExtensionContext) {
-        const eltNames = context.workspaceState.get<string[]>(`${this.id}Elts`, []);
+        const eltsKey = `${this.id}Elts`;
+        this.firstStart = !context.workspaceState.keys().includes(eltsKey);
+        console.log(this.id, "srcInit", "this.firstStart", this.firstStart);
+
+        const eltNames = context.workspaceState.get<string[]>(eltsKey, []);
         console.log(this.id, "srcInit", eltNames, "this.elts.length", this.elts.length);
 
         if (this.elts.length === 0) {
@@ -107,7 +113,7 @@ class SrcCheckboxManager {
     }
     srcSaveStatus(context: ExtensionContext) {
         const eltNames = [...this.elts].map(elt => elt.id);
-        console.log("srcSaveStatus", eltNames);
+        console.log(this.id, "srcSaveStatus", eltNames);
         context.workspaceState.update(`${this.id}Elts`, eltNames);
 
         for (const elt of this.elts) {
@@ -178,14 +184,15 @@ class SrcCheckboxManager {
         }
     }
     srcGetHtml(): string {
-        // Just a div containing data (media will dynamically create the real html) 
-        let html = `<div id="${this.id}" editable="${this.editable}">`;
+        // Just a div containing data (media will dynamically create the real html)
+        let html = `<div id="${this.id}" editable="${this.editable}" first-start="${this.firstStart}">`;
         for (const elt of this.elts) {
             for (const eltHtml of elt.getHtmls()) {
                 html += eltHtml;
             }
         }
         html += `</div>`;
+        // console.log(this.id, "srcGetHtml", "html", html);
         return html;
     }
 }
