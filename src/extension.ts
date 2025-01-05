@@ -226,6 +226,8 @@ class CaseSearchPanel {
 					console.log(`manager message ${message.command} received`);
 					console.log(message);
 					mmi.srcManageManagerMessage(message, this._context);
+					// Set the focus back to the input
+					this._panel.webview.postMessage({ command: 'focus' });
 					return;
 				}
 
@@ -247,10 +249,8 @@ class CaseSearchPanel {
 						console.log(`${message.command} ??? received`, message);
 						return;
 				}
-				if (message.command === 'main-instant') {
-					// Set the focus back to the input
-					this._panel.webview.postMessage({ command: 'focus' });
-				}
+				// Set the focus back to the input
+				this._panel.webview.postMessage({ command: 'focus' });
 			},
 			null,
 			this._disposables

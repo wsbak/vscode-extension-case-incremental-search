@@ -160,7 +160,9 @@ class MediaCheckboxManager {
 	public  readonly elts: MediaCheckbox[];
     private readonly autonomous: boolean;
     public  readonly htmlTable: boolean;
-    private          eventListenerMethod: any;  // null until mediaAddEventListener, still null if autonomous
+    private          eventListenerFocusMethod: any; // null until mediaAddEventListener
+    private          eventListenerSendMethod: any;  // null until mediaAddEventListener, still null if autonomous
+
     public           editable: {                // only if editable
         addElt: MediaCheckboxAdd;
         draggableTable: DraggableTable;
@@ -220,7 +222,8 @@ class MediaCheckboxManager {
             }
         }
         this.mediaComputeMainCheckbox();
-        this.eventListenerMethod = null;
+        this.eventListenerFocusMethod = null;
+        this.eventListenerSendMethod = null;
     }
     protected mediaOnFirstStart() {
         // To override if needed
@@ -380,21 +383,23 @@ class MediaCheckboxManager {
                     elt.mediaEditStart();
                 }
             });
-           elt.mediaAddEventListenerRemove((_elt: MediaCheckbox) => {
+            elt.mediaAddEventListenerRemove((_elt: MediaCheckbox) => {
                 this.mediaRemoveChild(elt);
             });
         }
     }
-    mediaAddEventListener(method: any) {
-        this.eventListenerMethod = method;
+    mediaAddEventListener(focusMethod: any, sendMethod: any) {
+        this.eventListenerFocusMethod = focusMethod;
+        this.eventListenerSendMethod = sendMethod;
         // eventListeners already setted
     }
     private mediaEventListenerInnerMethod(event: any) {
         this.mediaManage(event);
+        this.eventListenerFocusMethod(event);
 
-        if (this.eventListenerMethod) {
+        if (this.eventListenerSendMethod) {
             // console.log(this.id, "mediaAddEventListenerInner callback call method");
-            this.eventListenerMethod(event);
+            this.eventListenerSendMethod(event);
         }
         else {
             // console.log(this.id, "mediaAddEventListenerInner callback call mediaBuildMessage");
@@ -618,13 +623,16 @@ export class MediaMmi {
     }
 
     mediaInit() {
-        this.textToSearch.addEventListener( 'input', (event: any) => { this.mediaSearchIncremental(event); });
-        this.sensitiveCase.addEventListener('input', (event: any) => { this.mediaSearchIncremental(event); });
+        this.textToSearch.addEventListener( 'input', (event: any) => { this.mediaSaveFocusItem(event);
+                                                                       this.mediaSearchIncremental(event); });
+        this.sensitiveCase.addEventListener('input', (event: any) => { this.mediaSaveFocusItem(event);
+                                                                       this.mediaSearchIncremental(event); });
         for (const manager of this.mainManagers) {
-            manager.mediaAddEventListener((event: any) => { this.mediaSearchIncremental(event); });
+            manager.mediaAddEventListener((event: any) => { this.mediaSaveFocusItem(event); },
+                                          (event: any) => { this.mediaSearchIncremental(event); });
         }
         for (const manager of this.otherManagers) {
-            manager.mediaAddEventListener(null);
+            manager.mediaAddEventListener((event: any) => { this.mediaSaveFocusItem(event); }, null);
         }
 
         // Handle messages sent from the extension to the webview
@@ -637,6 +645,9 @@ export class MediaMmi {
                     break;
             }
         });
+    }
+    private mediaSaveFocusItem(event: any) {
+        this.focusItem = event.target;
     }
     private mediaSearchIncremental(event: any) {
         this.focusItem = event.target;
