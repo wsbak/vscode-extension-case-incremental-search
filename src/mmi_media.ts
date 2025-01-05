@@ -3,10 +3,14 @@
 // Do not modify .js file
 
 import { DraggableTable } from './DraggableTable';
+declare var acquireVsCodeApi: any;
 
 type Message = { [key: string]: any };
 
-let mediaSendMessage: ((message: Message) => void) | null = null;
+const vscode = acquireVsCodeApi();
+function mediaSendMessage(message: Message) {
+    vscode.postMessage(message);
+}
 
 class MediaCheckbox {
 	public  readonly id: string;                             // id inside message and load/save into context
@@ -585,6 +589,8 @@ export class MediaFilesToExcludeManager extends MediaFilesToManager {
 
 // Defines some parts of the mmi
 export class MediaMmi {
+    public readonly textToSearch: HTMLInputElement;
+    public readonly sensitiveCase: HTMLInputElement;
     public readonly caseManager: MediaCaseManager;
     public readonly wordManager: MediaWordManager;
     public readonly filesToIncludeManager: MediaFilesToIncludeManager;
@@ -592,9 +598,11 @@ export class MediaMmi {
     public readonly managers: MediaCheckboxManager[];
     private readonly mainManagers: MediaCheckboxManager[];
     private readonly otherManagers: MediaCheckboxManager[];
+    private          focusItem: HTMLElement | undefined = undefined;
 
-	constructor(mediaSendMsg: any) {
-        mediaSendMessage = mediaSendMsg;
+	constructor() {
+        this.textToSearch  = document.getElementById('text-to-search')! as HTMLInputElement;
+        this.sensitiveCase = document.getElementById('sensitive-case')! as HTMLInputElement;
         this.caseManager           = new MediaCaseManager();
         this.wordManager           = new MediaWordManager();
         this.filesToIncludeManager = new MediaFilesToIncludeManager();
@@ -602,19 +610,46 @@ export class MediaMmi {
         this.mainManagers  = [this.caseManager, this.wordManager];
         this.otherManagers = [this.filesToIncludeManager, this.filesToExcludeManager];
         this.managers      = this.mainManagers.concat(this.otherManagers);
+
+        // Focus on textToSearch at beginning
+        this.textToSearch.focus();
+        // Cursor at the end of the text
+        this.textToSearch.selectionStart = this.textToSearch.selectionEnd = 10000;
     }
 
-    mediaAddEventListener(method: any) {
+    mediaInit() {
+        this.textToSearch.addEventListener( 'input', (event: any) => { this.mediaSearchIncremental(event); });
+        this.sensitiveCase.addEventListener('input', (event: any) => { this.mediaSearchIncremental(event); });
         for (const manager of this.mainManagers) {
-            manager.mediaAddEventListener(method);
+            manager.mediaAddEventListener((event: any) => { this.mediaSearchIncremental(event); });
         }
         for (const manager of this.otherManagers) {
             manager.mediaAddEventListener(null);
         }
+
+        // Handle messages sent from the extension to the webview
+        window.addEventListener('message', event => {
+            const message = event.data; // The json data that the extension sent
+            switch (message.command) {
+                case 'focus':
+                    // Focus comes back to the item which has triggered the command
+                    this.focusItem?.focus();
+                    break;
+            }
+        });
     }
-    mediaUpdateMainMessage(message: Message) {
+    private mediaSearchIncremental(event: any) {
+        this.focusItem = event.target;
+
+        const message = {
+            command:           'main-instant',
+            sensitiveCase:     this.sensitiveCase.checked,
+            text:              this.textToSearch.value,
+        };
         for (const manager of this.mainManagers) {
             manager.mediaUpdateMessage(message);
         }
+
+        vscode.postMessage(message);        
     }
 }
