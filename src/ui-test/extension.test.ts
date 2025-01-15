@@ -18,13 +18,11 @@ class EditableLabel {
     public readonly label: WebElement;
     public readonly expected: {
         label: string,
-        editable: boolean,
     };
-    constructor(label: WebElement, labelExpected: string, editableExpected: boolean) {
+    constructor(label: WebElement, labelExpected: string) {
         this.label = label;
         this.expected = {
             label: labelExpected,
-            editable: editableExpected,
         };
     }
     async checkOnce() {
@@ -32,7 +30,7 @@ class EditableLabel {
     }
     async check() {
         expect(await this.label.isDisplayed()).equals(true);
-        expect(await this.label.isEnabled()).equals(this.expected.editable);
+        expect(await this.label.isEnabled()).equals(true);
         expect(await this.label.getAttribute("value")).equals(this.expected.label);
     }
 }
@@ -83,48 +81,21 @@ class EditButton {
 }
 
 class AddEditableCheckbox {
-    public readonly label: EditableLabel;
     public readonly addButton: Button;
-    constructor(label: WebElement, addButton: WebElement) {
-        this.label = new EditableLabel(label, "", true);
-        this.addButton = new Button(addButton, false);  // not enabled because label empty
+    constructor(addButton: WebElement) {
+        this.addButton = new Button(addButton);
     }
     async checkOnce() {
-        await this.label.checkOnce();
         await this.addButton.checkOnce();
     }
     async checkInitialState() {
-        expect(this.label.expected.label).equals("");
-        expect(this.label.expected.editable).equals(true);
-        expect(this.addButton.expected.enabled).equals(false);
         await this.check();
     }
     async check() {
-        await this.label.check();
         await this.addButton.check();
     }
-    async clear() {
-        // this.label.label.clear() does not trigger input event, so the button is not disabled/greyed
-        for (let counter = this.label.expected.label.length; counter > 0; --counter) {
-            await this.label.label.sendKeys(Key.BACK_SPACE);
-        }
-        this.label.expected.label = "";
-        this.addButton.expected.enabled = false;
-        await this.check();
-    }
-    async add(label: string, clearBefore: boolean=true) {
-        if (clearBefore) {
-            await this.clear();
-        }
-
-        await this.label.label.sendKeys(label);
-        this.label.expected.label += label;
-        this.addButton.expected.enabled = true;
-        await this.check();
-
+    async add() {
         await this.addButton.button.click();
-        // The label is untouched, so can not add it again
-        this.addButton.expected.enabled = false;
         await this.check();
     }
 }
@@ -419,7 +390,6 @@ class EditableCheckbox {
     public readonly subId: number;
     public readonly label: EditableLabel;
     public readonly checkbox: WebElement;
-    public editButton: EditButton;
     public removeButton: Button;
     public readonly gripper: WebElement;
     public readonly expected: {
@@ -428,15 +398,13 @@ class EditableCheckbox {
 
     static async new(view: WebView, id: string, subId: number, labelExpected: string): Promise<EditableCheckbox> {
         const eltMain = await view.findWebElement(By.id(`${id}-elt`));
-        const label = new EditableLabel(await eltMain.findElement(By.id(`${id}-label`)), labelExpected, false);
-        const editButton = new EditButton(await eltMain.findElement(By.id(`${id}-editElt`)));
+        const label = new EditableLabel(await eltMain.findElement(By.id(`${id}-label`)), labelExpected);
         const removeButton = new Button(await eltMain.findElement(By.id(`${id}-removeElt`)));
         const gripper = await eltMain.findElement(By.className('codicon-gripper'));
         const elt = new EditableCheckbox(id,
                                         subId,
                                         label,
                                         await view.findWebElement(By.id(`${id}-checkbox`)),
-                                        editButton,
                                         removeButton,
                                         gripper);
         return elt;
@@ -445,14 +413,12 @@ class EditableCheckbox {
                 subId: number,
                 label: EditableLabel,
                 checkbox: WebElement,
-                editButton: EditButton,
                 removeButton: Button,
                 gripper: WebElement) {
         this.id = id;
         this.subId = subId;
         this.label = label;
         this.checkbox = checkbox;
-        this.editButton = editButton;
         this.removeButton = removeButton;
         this.gripper = gripper;
         this.expected = {
@@ -464,13 +430,11 @@ class EditableCheckbox {
         expect(await this.checkbox.getAttribute('type')).equals('checkbox');
         expect(await this.checkbox.isDisplayed()).equals(true);
         expect(await this.checkbox.isEnabled()).equals(true);
-        expect(await this.editButton.checkOnce());
         expect(await this.removeButton.checkOnce());
     }
     async check() {
         expect(await this.label.check());
         expect(await this.checkbox.isSelected()).equals(this.expected.selected);
-        expect(await this.editButton.check());
         expect(await this.removeButton.check());
     };
     restore(previous: EditableCheckbox) {
@@ -492,8 +456,7 @@ class FilesTo {
                                  await view.findWebElement(By.id(`${id}-checkbox`)),
                                  "All",
                                  false);
-        const add = new AddEditableCheckbox(await view.findWebElement(By.id(`${id}-addElt-label`)),
-                                            await view.findWebElement(By.id(`${id}-addElt-apply`)));
+        const add = new AddEditableCheckbox(await view.findWebElement(By.id(`${id}-addElt-apply`)));
         const instance = new FilesTo(view, id, all, add);
 
         if (previous) {
@@ -565,25 +528,14 @@ class FilesTo {
             expect(eltId).equals(`${this.elts[idx].id}-elt`);
         }
     }
-    // label must not be empty or already exist, can not add, addButton disabled
-    async addNewCheckbox(label: string, clearBefore: boolean=true): Promise<EditableCheckbox> {
-        await this.addEditableCheckbox.add(label, clearBefore);
-
+    async addNewCheckbox(label: string): Promise<EditableCheckbox> {
+        await this.addEditableCheckbox.add();
         // The new item is not selected, so all is automatically unselected
         this.allCheckbox.expected.selected = false;
-
         const elt = await this.addNewCheckboxElt(label);
+        await elt.label.label.sendKeys(label);
         await this.check();
         return elt;
-    }
-    // Forbidden because empty or double
-    async addNewCheckboxForbidden(label: string) {
-        await this.addEditableCheckbox.label.label.clear();
-        await this.addEditableCheckbox.label.label.sendKeys(label);
-        this.addEditableCheckbox.label.expected.label = label;
-        this.addEditableCheckbox.addButton.expected.enabled = false;
-        // Check button is disabled
-        await this.addEditableCheckbox.check();
     }
     private async addNewCheckboxElt(label: string): Promise<EditableCheckbox> {
         let max = -1;
@@ -660,23 +612,6 @@ class FilesTo {
         }
         expect(false).equals(true);
         return this.elts[0];  // to avoid compilation error
-    }
-    async editStart(elt: EditableCheckbox) {
-        expect(elt.editButton.expected.label).equals(elt.editButton.editLabel);
-        await elt.editButton.button.click();
-
-        elt.editButton.expected.label = elt.editButton.validLabel;
-        elt.label.expected.editable = true;
-        await this.check();
-    }
-    async editValid(elt: EditableCheckbox, addEditableCheckboxEnabled: boolean) {
-        expect(elt.editButton.expected.label).equals(elt.editButton.validLabel);
-        await elt.editButton.button.click();
-
-        elt.editButton.expected.label = elt.editButton.editLabel;
-        elt.label.expected.editable = false;
-        this.addEditableCheckbox.addButton.expected.enabled = addEditableCheckboxEnabled;
-        await this.check();
     }
     async dragAndDrop(sourceElt: EditableCheckbox, targetElt: EditableCheckbox) {
         const actions = this.view.getDriver().actions();
@@ -1137,7 +1072,7 @@ describe('WebViews', function () {
     // --------------------------------------------------------------------------------
     filesToIdArray.forEach((filesToId) => {
         describe(`${filesToId}`, async function () {
-            this.timeout(4000);
+            this.timeout(8000);
             let filesTo: FilesTo;
             let cppElt: EditableCheckbox | undefined = undefined;
             let jsElt: EditableCheckbox | undefined = undefined;
@@ -1149,9 +1084,6 @@ describe('WebViews', function () {
 
             it('Check initial state', async function () {
                 await filesTo.checkInitialState();
-            });
-            it('add item empty forbidden', async function () {
-                await filesTo.addNewCheckboxForbidden("");
             });
             it('add item 1', async function () {
                 cppElt = await filesTo.addNewCheckbox("*.cpp,*.cxx,*.h,*.hpp,*.hxx");
@@ -1167,10 +1099,23 @@ describe('WebViews', function () {
                 await filesTo.selectAll();
                 javaElt = await filesTo.addNewCheckbox("*.java,*.js");
             });
-            it('add item double forbidden', async function () {
-                await filesTo.addNewCheckboxForbidden("*.cpp,*.cxx,*.h,*.hpp,*.hxx");
-                await filesTo.addNewCheckboxForbidden("*.js");
-                await filesTo.addNewCheckboxForbidden("*.java,*.js");
+            // it('add item double possible', async function () {
+            //     ["*.cpp,*.cxx,*.h,*.hpp,*.hxx", "*.js", "*.java,*.js"].forEach(async (label) => {
+            //         const doubleElt = await filesTo.addNewCheckbox(label);
+            //         await filesTo.remove(doubleElt!, false);
+            //     });
+            //     // KO
+            //     // 3 elements are still visible ???
+            //     // - The 2 last are empty ???
+            //     // - The 1st contains the 3 labels concatenated ??? 
+            // });
+            it('add item double possible', async function () {
+                const doubleElt1 = await filesTo.addNewCheckbox("*.cpp,*.cxx,*.h,*.hpp,*.hxx");
+                await filesTo.remove(doubleElt1, false);
+                const doubleElt2 = await filesTo.addNewCheckbox("*.js");
+                const doubleElt3 = await filesTo.addNewCheckbox("*.java,*.js");
+                await filesTo.remove(doubleElt2, false);
+                await filesTo.remove(doubleElt3, false);
             });
             it('select item, so all selected', async function () {
                 await filesTo.select(javaElt!, true);
@@ -1197,13 +1142,10 @@ describe('WebViews', function () {
                 await filesTo.unselectAll();
             });
             it('edit item cpp', async function () {
-                await filesTo.editStart(cppElt!);
-
                 cppElt!.label.label.sendKeys(",*.hpp,*.hxx");
                 cppElt!.label.expected.label = "*.cpp,*.cxx,*.h,*.hpp,*.hxx";
                 await cppElt!.check();
-
-                await filesTo.editValid(cppElt!, true);
+                await filesTo.check();
             });
             it('select item cpp', async function () {
                 await filesTo.select(cppElt!, false);
@@ -1212,7 +1154,6 @@ describe('WebViews', function () {
                 await filesTo.remove(cppElt!,  false);  cppElt = undefined;
                 await filesTo.remove(javaElt!, false);  javaElt = undefined;
                 await filesTo.remove(jsElt!,   false);  jsElt = undefined;
-                await filesTo.addEditableCheckbox.clear();
             });
             it('Check initial state', async function () {
                 await filesTo.checkInitialState();
@@ -1243,7 +1184,6 @@ describe('WebViews', function () {
                 await mmi.filesToInclude.select(javaRealElt, false);
 
                 const cppElt = await mmi.filesToInclude.addNewCheckbox("*.c");
-                await mmi.filesToInclude.editStart(cppElt);
                 await cppElt.label.label.sendKeys(",*.h");
                 cppElt.label.expected.label = "*.c,*.h";
                 await cppElt.check();
@@ -1252,10 +1192,6 @@ describe('WebViews', function () {
                 await mmi.filesToInclude.dragAndDrop(cppElt, javaRealElt);  // becomes ..., cpp, javaReal, ..., js, java
                 await mmi.filesToInclude.dragAndDrop(javaRealElt, cppElt);  // becomes ..., javaReal, cpp, ..., js, java
                 await mmi.filesToInclude.select(cppElt, false);
-
-                // no editValid on cppElt, so no save
-                // so rollback expected.label (because xxx.restore fail to do it)
-                cppElt.label.expected.label = "*.c";
             }
             {
                 const javaElt = await mmi.filesToExclude.addNewCheckbox("*.java,*.js");

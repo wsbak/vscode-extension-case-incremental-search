@@ -16,7 +16,6 @@ class MediaCheckbox {
 	public  readonly id: string;                             // id inside message and load/save into context
 	private readonly checkboxId: string;                     // id inside html
 	private readonly checkboxLabelId: string;                // id inside html
-	private readonly editEltId: string;
 	private readonly removeEltId: string;
     public  readonly editable: boolean;                      // removeable + label is writeable (so saved and loaded)
     public           htmlClasses: string = "";
@@ -26,7 +25,6 @@ class MediaCheckbox {
     public           htmlCheckbox: HTMLInputElement | null;        // element <checkboxId> from document
     public           htmlEditable: {          // only if editable
         htmlCheckboxLabel: HTMLInputElement,  // element <checkboxLabelId> from document
-        editButton: HTMLButtonElement;        // element <editEltId> from document
         removeButton: HTMLButtonElement;      // element <removeEltId> from document
     } | null = null;                          // never null after mediaInit IF editable
 
@@ -37,7 +35,6 @@ class MediaCheckbox {
         this.id = id;
         this.checkboxId = `${this.id}-checkbox`;
         this.checkboxLabelId = `${this.id}-label`;
-        this.editEltId = `${this.id}-editElt`;
         this.removeEltId = `${this.id}-removeElt`;
         this.editable = editable;
         this.label = label;
@@ -50,7 +47,6 @@ class MediaCheckbox {
         if (this.editable) {
             this.htmlEditable = {
                 htmlCheckboxLabel: document.getElementById(this.checkboxLabelId) as HTMLInputElement,
-                editButton: document.getElementById(this.editEltId) as HTMLButtonElement,
                 removeButton: document.getElementById(this.removeEltId) as HTMLButtonElement,
             };
         }
@@ -59,20 +55,8 @@ class MediaCheckbox {
         this.htmlCheckbox!.addEventListener('input', (event: any) => { method(event); });
     }
     mediaAddEventListenerEdit(method: any) {
-        this.htmlEditable!.editButton!.addEventListener('click', () => {
-            // console.log("media.editButton input");
-            const editLabel = '\u{1F527}';   // "&#128295;"
-            const validLabel = '\u{2714}';   // "&#10004;"
-            let valid = false;
-            if (this.htmlEditable!.editButton!.textContent === editLabel) {
-                this.htmlEditable!.editButton!.textContent = validLabel;
-                valid = false;
-            }
-            else {
-                this.htmlEditable!.editButton!.textContent = editLabel;
-                valid = true;
-            }
-            method(this, valid);
+        this.htmlEditable!.htmlCheckboxLabel!.addEventListener('input', (event: any) => {
+            method(event);
         });
     }
     mediaAddEventListenerRemove(method: any) {
@@ -86,14 +70,7 @@ class MediaCheckbox {
         message[this.checkboxLabelId] = this.label;
         // console.log(this.id, `mediaUpdateMessage message[${this.id}]`, message[this.id], `message[${this.checkboxLabelId}]`, message[this.checkboxLabelId]);
     }
-    mediaEditStart() {
-        const ie = document.getElementById(`${this.checkboxLabelId}`) as HTMLInputElement;
-        ie.removeAttribute("disabled");
-    }
     mediaEditValid(managerId: string) {
-        const ie = document.getElementById(`${this.checkboxLabelId}`) as HTMLInputElement;
-        ie.setAttribute("disabled", "none");
-
         // Save
         this.label = this.htmlEditable!.htmlCheckboxLabel!.value!;
         // console.log("mediaEditValid", "this.label", this.label);
@@ -113,7 +90,7 @@ class MediaCheckbox {
         const classDecl = this.htmlClasses !== '' ? `class="${this.htmlClasses}"` : '';
         const state = this.value ? "checked" : "";
         const labelHtml = this.editable ?
-            `<input for="${this.checkboxId}" id="${this.checkboxLabelId}" type="text" value="${this.label}" class="input-as-label" disabled/>` : 
+            `<input for="${this.checkboxId}" id="${this.checkboxLabelId}" type="text" value="${this.label}" placeholder="*.cpp,*.c,*.h" class="input-as-label"/>` : 
             `<label for="${this.checkboxId}" id="${this.checkboxLabelId}">${this.label}</label>`;
 
         const html = `<div class="container">
@@ -123,29 +100,8 @@ class MediaCheckbox {
         // TODO click on input this.checkboxLabelId does NOT change this.checkboxId (as it does for a label)
         const htmls = [html];
         if (this.editable) {
-            // edit button
-            htmls.push(
-            // `<button id="${this.editEltId}">&#9997;</button>`,
-            // `<button id="${this.editEltId}">&#9998;</button>`,
-            // `<button id="${this.editEltId}">&#128275;</button>`,
-            `<button id="${this.editEltId}">&#128295;</button>`,
-            // `<button id="${this.editEltId}">&#128393;</button>`,
-            // // `<button id="${this.editEltId}">&#128394;</button>`,
-            // // `<button id="${this.editEltId}">&#128395;</button>`,
-            // // `<button id="${this.editEltId}">&#128396;</button>`,
-            // `<button id="${this.editEltId}">&#128397;</button>`,
-
-            // // Valid
-            // // `<button id="${this.editEltId}">&#10003;</button>`,
-            // `<button id="${this.editEltId}">&#10004;</button>`,
-            // // `<button id="${this.editEltId}">&#9745;</button>`,
-            // // `<button id="${this.editEltId}">&#9166;</button>`,
-            // // `<button id="${this.editEltId}">&#9989;</button>`,
-
-            );
             // remove button
             htmls.push(`<button id="${this.removeEltId}">&#10134;</button>`);
-
             // drag&drop
             htmls.push("=");
         }
@@ -291,7 +247,6 @@ class MediaCheckboxManager {
         this.elts.splice(index, 1);
 
         this.mediaComputeMainCheckbox();
-        this.editable!.addElt.mediaUpdateBehavior();
     }
     mediaAddNewChild(label: string, value: boolean): MediaCheckbox {
         const eltId = this.mediaGenerateNewChildId();
@@ -299,7 +254,6 @@ class MediaCheckboxManager {
         const elt = this.mediaAddNewChildNoMessage(eltId, "Elt", label, value, true);
 
         this.mediaComputeMainCheckbox();
-        this.editable!.addElt.mediaUpdateBehavior();
 
         // Send add message
         const message: Message = {
@@ -373,17 +327,13 @@ class MediaCheckboxManager {
     mediaEltAddEventListener(elt: MediaCheckbox) {
         elt.mediaAddEventListener((event: any) => { this.mediaEventListenerInnerMethod(event); });
         if (elt.editable) {
-            elt.mediaAddEventListenerEdit((_elt: MediaCheckbox, valid: boolean) => {
-                // console.log(this.id, "mediaAddEventListenerEdit", elt.id, valid ? "valid" : "edit");
-                if (valid) {
-                    elt.mediaEditValid(this.id);
-                    this.editable!.addElt.mediaUpdateBehavior();
-                }
-                else {
-                    elt.mediaEditStart();
-                }
+            elt.mediaAddEventListenerEdit((event: any) => {
+                // console.log(this.id, "mediaAddEventListenerEdit", elt.id);
+                this.eventListenerFocusMethod(event);
+                elt.mediaEditValid(this.id);
             });
             elt.mediaAddEventListenerRemove((_elt: MediaCheckbox) => {
+                this.eventListenerFocusMethod(null);
                 this.mediaRemoveChild(elt);
             });
         }
@@ -501,62 +451,32 @@ export class MediaWordManager extends MediaCheckboxManager {
 export class MediaCheckboxAdd {
     private readonly manager: MediaCheckboxManager;
 	private readonly id: string;                             // id inside message and load/save into context
-    private readonly htmlLabelId: string;
     private readonly htmlApplyId: string;
     private          media: {
-        label: HTMLInputElement,
         button: HTMLButtonElement;
     } | null = null;                  // never null after mediaInit
 
     constructor(manager: MediaCheckboxManager, id: string) {
         this.manager = manager;
         this.id = id;
-        this.htmlLabelId  = `${this.id}-label`;
         this.htmlApplyId = `${this.id}-apply`;
     }
 
     mediaInit() {
         this.media = {
-            label:  document.getElementById(this.htmlLabelId ) as HTMLInputElement,
             button: document.getElementById(this.htmlApplyId)  as HTMLButtonElement,
         };
-        this.mediaUpdateBehavior();
-    }
-    mediaUpdateBehavior() {
-        // Forbid empty label
-        if (this.media!.label.value === '') {
-            this.media!.label.classList.remove('error');
-            this.media!.button.disabled = true;
-            return;
-        }
-
-        // Forbid doubles
-        for (const elt of this.manager.elts) {
-            if (this.media!.label.value === elt.label) {
-                this.media!.label.classList.add('error');
-                this.media!.button.disabled = true;
-                return;
-            }
-        }
-
-        this.media!.label.classList.remove('error');
-        this.media!.button.disabled = false;
     }
     mediaAddEventListener() {
-        this.media!.label.addEventListener('input', () => {
-            // console.log(this.id, `mediaAddEventListener label input = ${this.media!.label.value}`);
-            this.mediaUpdateBehavior();
-        });
         this.media!.button.addEventListener('click', () => {
             // console.log(this.id, "mediaAddEventListener button click");
-            this.manager.mediaAddNewChild(this.media!.label.value, false);
+            this.manager.mediaAddNewChild("", false);
         });
     }
 
     getHtmls(): string[] {
         const htmls = [];
-        htmls.push(`<input  id="${this.htmlLabelId }" type="text" placeholder="*.cpp,*.c,*.h">`);
-        htmls.push(``);  // no edit/valid button
+        htmls.push(``);  // no checkbox/label
         htmls.push(`<button id="${this.htmlApplyId}">&#10133;</button>`);
         return htmls;
     }
@@ -647,7 +567,7 @@ export class MediaMmi {
         });
     }
     private mediaSaveFocusItem(event: any) {
-        this.focusItem = event.target;
+        this.focusItem = event ? event.target : undefined;
     }
     private mediaSearchIncremental(event: any) {
         this.focusItem = event.target;
