@@ -1,0 +1,28 @@
+
+.draggable-table {
+  position: relative;
+}
+.draggable-table .draggable-table__drag {
+  position: relative;
+  width: 100%;
+  z-index: 10;
+  cursor: grabbing !important; /* does not apply, .draggable-handler cursor is applied */
+  opacity: 1;
+}
+.draggable-handler {
+  cursor: grab;
+  /* for utf8 arrow
+	font-size: 20px;
+	padding-bottom: 4px;
+	padding-left: 10px; */
+  /* for codicon */
+	/* font-size: 32px;  does not change size, change vertical position */
+	padding-top: 3px;
+	padding-left: 5px;
+}
+.draggable-handler:active {
+  cursor: grabbing !important; /* does not apply, .draggable-handler cursor is applied */
+}
+.draggable-table tbody tr td {
+  user-select: none;
+}

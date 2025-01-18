@@ -6,3 +6,27 @@
 .hidden {
 	visibility: hidden;
 }
+
+/* Why !important is needed to override
+   vscode.css input:not([type='checkbox']), textarea */
+.input-as-label:disabled {
+    background-color: transparent !important;
+    border: none                  !important;
+}
+
+.container{
+    display: flex;
+}
+.right {
+    flex-grow: 1;
+}
+
+/* red text will appear on input which match an already existent elt
+   So red text will appear after add a new elt
+   Button is disabled/greyed, seems enough feedback
+input.error {
+	color: red;
+} */
+button:disabled {
+	background: grey;
+}
