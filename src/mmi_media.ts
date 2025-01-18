@@ -6,6 +6,7 @@ import { DraggableTable } from './DraggableTable';
 declare var acquireVsCodeApi: any;
 
 type Message = { [key: string]: any };
+type EventHandler = (event: any) => void;
 
 const vscode = acquireVsCodeApi();
 function mediaSendMessage(message: Message) {
@@ -51,15 +52,15 @@ class MediaCheckbox {
             };
         }
     }
-    mediaAddEventListener(method: any) {
+    mediaAddEventListener(method: EventHandler) {
         this.htmlCheckbox!.addEventListener('input', (event: any) => { method(event); });
     }
-    mediaAddEventListenerEdit(method: any) {
+    mediaAddEventListenerEdit(method: EventHandler) {
         this.htmlEditable!.htmlCheckboxLabel!.addEventListener('input', (event: any) => {
             method(event);
         });
     }
-    mediaAddEventListenerRemove(method: any) {
+    mediaAddEventListenerRemove(method: (checkbox: MediaCheckbox) => void) {
         this.htmlEditable!.removeButton!.addEventListener('click', () => {
             // console.log("media.removeButton input");
             method(this);
@@ -170,7 +171,9 @@ class MediaCheckboxManager {
                 };
                 this.mediaAddNewChildHtml(this.addEltId, this.editable.addElt.getHtmls());
                 this.editable.addElt.mediaInit();
-                this.editable.addElt.mediaAddEventListener();
+                this.editable.addElt.mediaAddEventListener((event: any) => {
+                    this.eventListenerFocusMethod(event);
+                });
             }
             const firstStart = srcGroup.getAttribute("first-start")! === "true";
             if (firstStart && this.elts.length === 0) {
@@ -338,7 +341,7 @@ class MediaCheckboxManager {
             });
         }
     }
-    mediaAddEventListener(focusMethod: any, sendMethod: any) {
+    mediaAddEventListener(focusMethod: EventHandler, sendMethod: any) {
         this.eventListenerFocusMethod = focusMethod;
         this.eventListenerSendMethod = sendMethod;
         // eventListeners already setted
@@ -467,9 +470,10 @@ export class MediaCheckboxAdd {
             button: document.getElementById(this.htmlApplyId)  as HTMLButtonElement,
         };
     }
-    mediaAddEventListener() {
-        this.media!.button.addEventListener('click', () => {
+    mediaAddEventListener(method: EventHandler) {
+        this.media!.button.addEventListener('click', (event) => {
             // console.log(this.id, "mediaAddEventListener button click");
+            method(event);
             this.manager.mediaAddNewChild("", false);
         });
     }
