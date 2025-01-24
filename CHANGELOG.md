@@ -19,3 +19,7 @@
 ## 0.0.5  
 
 - mod: remove "Incremental search" checkbox and "OK" button
+
+## 0.0.6  
+
+- feat: add "Files to include" and "Files to exclude"
