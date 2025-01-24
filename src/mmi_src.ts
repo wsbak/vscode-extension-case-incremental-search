@@ -42,6 +42,7 @@ class SrcCheckbox {
             console.log("srcSaveStatus this.value === null");
             return;
         }
+        // undefined remove the value from context
         context.workspaceState.update(this.id, remove ? undefined : this.value);
         if (this.editable) {
             context.workspaceState.update(this.checkboxLabelId, remove ? undefined : this.label);

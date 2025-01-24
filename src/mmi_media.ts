@@ -527,7 +527,7 @@ export class MediaMmi {
     public readonly managers: MediaCheckboxManager[];
     private readonly mainManagers: MediaCheckboxManager[];
     private readonly otherManagers: MediaCheckboxManager[];
-    private          focusItem: HTMLElement | undefined = undefined;
+    private          focusItem: HTMLElement | null = null;
 
 	constructor() {
         this.textToSearch  = document.getElementById('text-to-search')! as HTMLInputElement;
@@ -571,7 +571,7 @@ export class MediaMmi {
         });
     }
     private mediaSaveFocusItem(event: any) {
-        this.focusItem = event ? event.target : undefined;
+        this.focusItem = event ? event.target : null;
     }
     private mediaSearchIncremental(event: any) {
         this.focusItem = event.target;

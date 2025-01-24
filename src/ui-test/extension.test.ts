@@ -159,7 +159,7 @@ class Cases {
     public  readonly path: Checkbox;
     public  readonly elts: Checkbox[];  // All previous except all
 
-    static async new(view: WebView, previous: Cases | undefined): Promise<Cases> {
+    static async new(view: WebView, previous: Cases | null): Promise<Cases> {
         const all = new Checkbox("case-checkbox",
                                  await view.findWebElement(By.id('case-label')),
                                  await view.findWebElement(By.id('case-checkbox')),
@@ -302,7 +302,7 @@ class Word {
     public  readonly beginCheckbox: Checkbox;
     public  readonly endCheckbox: Checkbox;
 
-    static async new(view: WebView, previous: Word | undefined): Promise<Word> {
+    static async new(view: WebView, previous: Word | null): Promise<Word> {
         const whole = new Checkbox("word",
                                    await view.findWebElement(By.id('word-label')),
                                    await view.findWebElement(By.id('word-checkbox')),
@@ -450,7 +450,7 @@ class FilesTo {
     private readonly elts: EditableCheckbox[] = [];
     private readonly defaultEltLabels: string[] = [];
 
-    static async new(view: WebView, id: string, previous: FilesTo | undefined): Promise<FilesTo> {
+    static async new(view: WebView, id: string, previous: FilesTo | null): Promise<FilesTo> {
         const all = new Checkbox(id,
                                  await view.findWebElement(By.id(`${id}-label`)),
                                  await view.findWebElement(By.id(`${id}-checkbox`)),
@@ -639,13 +639,13 @@ class Mmi {
     public readonly filesToInclude: FilesTo;
     public readonly filesToExclude: FilesTo;
 
-    static async new(view: WebView, previous: Mmi | undefined = undefined): Promise<Mmi> {
-        const cases             = await Cases.new(view, previous ? previous.cases : undefined);
+    static async new(view: WebView, previous: Mmi | null = null): Promise<Mmi> {
+        const cases             = await Cases.new(view, previous ? previous.cases : null);
         const sensitiveCase     = await view.findWebElement(By.id('sensitive-case'));
         const textToSearch      = await view.findWebElement(By.id('text-to-search'));
-        const word              = await Word.new(view, previous ? previous.word : undefined);
-        const filesToInclude    = await FilesTo.new(view, 'filesToInclude', previous ? previous.filesToInclude : undefined);
-        const filesToExclude    = await FilesTo.new(view, 'filesToExclude', previous ? previous.filesToExclude : undefined);
+        const word              = await Word.new(view, previous ? previous.word : null);
+        const filesToInclude    = await FilesTo.new(view, 'filesToInclude', previous ? previous.filesToInclude : null);
+        const filesToExclude    = await FilesTo.new(view, 'filesToExclude', previous ? previous.filesToExclude : null);
 
         const elt = new Mmi(cases, sensitiveCase, textToSearch, word, filesToInclude, filesToExclude);
         return elt;
@@ -678,7 +678,7 @@ class SideBar {
 
     constructor(view: WebView,
                 mmi: Mmi,
-                previous: SideBar | undefined = undefined) {
+                previous: SideBar | null = null) {
         this.view = view;
         this.mmi = mmi;
         this.status = previous ? previous.status : SideBarStatus.SearchNone;
@@ -808,8 +808,8 @@ describe('WebViews', function () {
     });
 
     // --------------------------------------------------------------------------------
-    async function beforeFunction(previousMmi: Mmi | undefined = undefined,
-                                  previousSideBar: SideBar | undefined = undefined) {
+    async function beforeFunction(previousMmi: Mmi | null = null,
+                                  previousSideBar: SideBar | null = null) {
         await new Workbench().executeCommand('case-incremental-search.start');
         await sleepMs(500);
         view = new WebView();
@@ -1074,9 +1074,9 @@ describe('WebViews', function () {
         describe(`${filesToId}`, async function () {
             this.timeout(8000);
             let filesTo: FilesTo;
-            let cppElt: EditableCheckbox | undefined = undefined;
-            let jsElt: EditableCheckbox | undefined = undefined;
-            let javaElt: EditableCheckbox | undefined = undefined;
+            let cppElt: EditableCheckbox | null = null;
+            let jsElt: EditableCheckbox | null = null;
+            let javaElt: EditableCheckbox | null = null;
 
             before(async function () {
                 filesTo = retrieveFilesToById(filesToId);
@@ -1125,11 +1125,11 @@ describe('WebViews', function () {
             });
             it('remove item, not all selected', async function () {
                 await filesTo.remove(cppElt!, false);
-                cppElt = undefined;
+                cppElt = null;
             });
             it('remove item, so all selected', async function () {
                 await filesTo.remove(jsElt!, true);
-                jsElt = undefined;
+                jsElt = null;
             });
             it('add item js again', async function () {
                 jsElt = await filesTo.addNewCheckbox("*.js");
@@ -1151,9 +1151,9 @@ describe('WebViews', function () {
                 await filesTo.select(cppElt!, false);
             });
             it('go back to initial state', async function () {
-                await filesTo.remove(cppElt!,  false);  cppElt = undefined;
-                await filesTo.remove(javaElt!, false);  javaElt = undefined;
-                await filesTo.remove(jsElt!,   false);  jsElt = undefined;
+                await filesTo.remove(cppElt!,  false);  cppElt = null;
+                await filesTo.remove(javaElt!, false);  javaElt = null;
+                await filesTo.remove(jsElt!,   false);  jsElt = null;
             });
             it('Check initial state', async function () {
                 await filesTo.checkInitialState();

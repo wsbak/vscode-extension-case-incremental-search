@@ -153,7 +153,7 @@ class CaseSearchPanel {
 	/**
 	 * Track the currently panel. Only allow a single panel to exist at a time.
 	 */
-	public static currentPanel: CaseSearchPanel | undefined;
+	public static currentPanel: CaseSearchPanel | null;
 
 	public static readonly viewType = 'caseSearch';
 
@@ -266,7 +266,7 @@ class CaseSearchPanel {
 	}
 
 	public dispose() {
-		CaseSearchPanel.currentPanel = undefined;
+		CaseSearchPanel.currentPanel = null;
 
 		// Clean up our resources
 		this._panel.dispose();
