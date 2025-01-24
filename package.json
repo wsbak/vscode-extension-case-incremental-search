@@ -2,7 +2,7 @@
 	"name": "case-incremental-search",
 	"displayName": "Case Incremental Search",
 	"description": "Search for camel, snake ... cases",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"publisher": "wsbak",
 	"icon": "resources/search.png",
 	"repository": {
