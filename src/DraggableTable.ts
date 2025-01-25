@@ -33,7 +33,7 @@ export class DraggableTable {
         this.bindMouse();
     }
 
-    bindMouse() {
+    bindMouse(): void {
         // console.log(this.tableId, "bindMouse");
 
         document.addEventListener('mousedown', (event) => {
@@ -89,7 +89,7 @@ export class DraggableTable {
         });    
     }
 
-    swapRow(row: any, index: number) {
+    swapRow(row: any, index: number): void {
         const currIndex = Array.from(this.tbody.children).indexOf(this.currRow!);
         const row1 = currIndex > index ? this.currRow : row;
         const row2 = currIndex > index ? row : this.currRow;
@@ -97,7 +97,7 @@ export class DraggableTable {
         this.tbody.insertBefore(row1, row2);
     }
 
-    moveRow(x: number, y: number) {
+    moveRow(x: number, y: number): void {
         this.dragElem!.style.transform = "translate3d(" + x + "px, " + y + "px, 0)";
 
         const	dragElemPos = this.dragElem!.getBoundingClientRect();
@@ -118,7 +118,7 @@ export class DraggableTable {
         }    
     }
 
-    addDraggableRow(target: any) {
+    addDraggableRow(target: any): void {
         this.dragElem = target.cloneNode(true);
         this.dragElem!.classList.add('draggable-table__drag');
         this.dragElem!.style.height = this.getStyle(target, 'height');
@@ -169,7 +169,7 @@ export class DraggableTable {
         return null;
     }
 
-    getMouseCoords(event: any) {
+    getMouseCoords(event: any): any {
         return {
             x: event.clientX,
             y: event.clientY
@@ -183,7 +183,7 @@ export class DraggableTable {
         return style ? style : null;
     }  
 
-    isIntersecting(min0: number, max0: number, min1: number, max1: number) {
+    isIntersecting(min0: number, max0: number, min1: number, max1: number): boolean {
         return Math.max(min0, max0) >= Math.min(min1, max1) &&
                Math.min(min0, max0) <= Math.max(min1, max1);
     }  

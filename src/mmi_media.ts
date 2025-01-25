@@ -9,7 +9,7 @@ type Message = { [key: string]: any };
 type EventHandler = (event: any) => void;
 
 const vscode = acquireVsCodeApi();
-function mediaSendMessage(message: Message) {
+function mediaSendMessage(message: Message): void {
     vscode.postMessage(message);
 }
 
@@ -43,7 +43,7 @@ class MediaCheckbox {
         this.htmlCheckbox = null;  // never null after mediaInit
         this.htmlEditable = null;  // never null after mediaInit IF editable
     }
-    mediaInit() {
+    mediaInit(): void {
         this.htmlCheckbox = document.getElementById(this.checkboxId) as HTMLInputElement;
         if (this.editable) {
             this.htmlEditable = {
@@ -52,7 +52,7 @@ class MediaCheckbox {
             };
         }
     }
-    mediaAddEventListener(method: EventHandler) {
+    mediaAddEventListener(method: EventHandler): void {
         this.htmlCheckbox!.addEventListener('input', (event: any) => { method(event); });
     }
     mediaAddEventListenerEdit(method: EventHandler) {
@@ -60,18 +60,18 @@ class MediaCheckbox {
             method(event);
         });
     }
-    mediaAddEventListenerRemove(method: (checkbox: MediaCheckbox) => void) {
+    mediaAddEventListenerRemove(method: (checkbox: MediaCheckbox) => void): void {
         this.htmlEditable!.removeButton!.addEventListener('click', () => {
             // console.log("media.removeButton input");
             method(this);
         });
     }
-    mediaUpdateMessage(message: Message) {
+    mediaUpdateMessage(message: Message): void {
         message[this.id] = this.htmlCheckbox!.checked;
         message[this.checkboxLabelId] = this.label;
         // console.log(this.id, `mediaUpdateMessage message[${this.id}]`, message[this.id], `message[${this.checkboxLabelId}]`, message[this.checkboxLabelId]);
     }
-    mediaEditValid(managerId: string) {
+    mediaEditValid(managerId: string): void {
         // Save
         this.label = this.htmlEditable!.htmlCheckboxLabel!.value!;
         // console.log("mediaEditValid", "this.label", this.label);
@@ -184,7 +184,7 @@ class MediaCheckboxManager {
         this.eventListenerFocusMethod = null;
         this.eventListenerSendMethod = null;
     }
-    protected mediaOnFirstStart() {
+    protected mediaOnFirstStart(): void {
         // To override if needed
         // E.g. add some default elts
     }
@@ -198,7 +198,7 @@ class MediaCheckboxManager {
         }
         return html;
     }
-    mediaRowDropped(_row: Element) {
+    mediaRowDropped(_row: Element): void {
         // console.log(this.id, "mediaRowDropped", row);
 
         // Retrieve the new order of the rows
@@ -228,7 +228,7 @@ class MediaCheckboxManager {
 
         // Sort this.elts is useless
     }
-    mediaRemoveChild(elt: MediaCheckbox) {
+    mediaRemoveChild(elt: MediaCheckbox): void {
         // console.log(this.id, "mediaRemoveChild", elt);
 
         // Send remove message
@@ -302,7 +302,7 @@ class MediaCheckboxManager {
 
         return elt;
     }
-    private mediaAddNewChildHtml(eltId: string, eltHtmls: string[]) {
+    private mediaAddNewChildHtml(eltId: string, eltHtmls: string[]): void {
         // console.log(this.id, "mediaAddNewChildHtml", eltId, eltHtmls);
 
         // Add html into document
@@ -327,7 +327,7 @@ class MediaCheckboxManager {
             rowBefore.parentNode!.insertBefore(newRow, rowBefore.nextSibling);
         }
     }
-    mediaEltAddEventListener(elt: MediaCheckbox) {
+    mediaEltAddEventListener(elt: MediaCheckbox): void {
         elt.mediaAddEventListener((event: any) => { this.mediaEventListenerInnerMethod(event); });
         if (elt.editable) {
             elt.mediaAddEventListenerEdit((event: any) => {
@@ -341,12 +341,12 @@ class MediaCheckboxManager {
             });
         }
     }
-    mediaAddEventListener(focusMethod: EventHandler, sendMethod: any) {
+    mediaAddEventListener(focusMethod: EventHandler, sendMethod: any): void {
         this.eventListenerFocusMethod = focusMethod;
         this.eventListenerSendMethod = sendMethod;
         // eventListeners already setted
     }
-    private mediaEventListenerInnerMethod(event: any) {
+    private mediaEventListenerInnerMethod(event: any): void {
         this.mediaManage(event);
         this.eventListenerFocusMethod(event);
 
@@ -360,7 +360,7 @@ class MediaCheckboxManager {
             mediaSendMessage!(message);
         }
     }
-    mediaUpdateMessage(message: Message) {
+    mediaUpdateMessage(message: Message): void {
         if (this.autonomous) {
             console.error(this.id, "mediaUpdateMessage must not be called if autonomous");
         }
@@ -385,7 +385,7 @@ class MediaCheckboxManager {
         return message;
     }
 
-    private mediaManage(event: any) {
+    private mediaManage(event: any): void {
         if (this.mainElt.htmlCheckbox === event.target) {
             // Change all subCheckboxes
             for (const elt of this.elts) {
@@ -406,7 +406,7 @@ class MediaCheckboxManager {
         // Impossible
     }
 
-    private mediaComputeMainCheckbox() {
+    private mediaComputeMainCheckbox(): void {
         if (this.mainElt && this.mainElt.htmlCheckbox) {
             const allChecked = this.elts.length !== 0 && [...this.elts].every(elt => elt.htmlCheckbox!.checked);
             this.mainElt.htmlCheckbox.checked = allChecked;
@@ -465,12 +465,12 @@ export class MediaCheckboxAdd {
         this.htmlApplyId = `${this.id}-apply`;
     }
 
-    mediaInit() {
+    mediaInit(): void {
         this.media = {
             button: document.getElementById(this.htmlApplyId)  as HTMLButtonElement,
         };
     }
-    mediaAddEventListener(method: EventHandler) {
+    mediaAddEventListener(method: EventHandler): void {
         this.media!.button.addEventListener('click', (event) => {
             // console.log(this.id, "mediaAddEventListener button click");
             method(event);
@@ -496,7 +496,7 @@ export class MediaFilesToIncludeManager extends MediaFilesToManager {
     constructor() {
         super("filesToInclude");
     }
-    protected mediaOnFirstStart() {
+    protected mediaOnFirstStart(): void {
         this.mediaAddNewChild("*.cpp,*.c,*.h", false);
         this.mediaAddNewChild("*.js,*.ts", false);
         this.mediaAddNewChild("*.java,*.kt", false);
@@ -510,7 +510,7 @@ export class MediaFilesToExcludeManager extends MediaFilesToManager {
     constructor() {
         super("filesToExclude");
     }
-    protected mediaOnFirstStart() {
+    protected mediaOnFirstStart(): void {
         this.mediaAddNewChild("*.o,*.a,*.dll,*.pyc", false);
         this.mediaAddNewChild("*.log,*.logs", false);
     }
@@ -546,7 +546,7 @@ export class MediaMmi {
         this.textToSearch.selectionStart = this.textToSearch.selectionEnd = 10000;
     }
 
-    mediaInit() {
+    mediaInit(): void {
         this.textToSearch.addEventListener( 'input', (event: any) => { this.mediaSaveFocusItem(event);
                                                                        this.mediaSearchIncremental(event); });
         this.sensitiveCase.addEventListener('input', (event: any) => { this.mediaSaveFocusItem(event);
@@ -570,10 +570,10 @@ export class MediaMmi {
             }
         });
     }
-    private mediaSaveFocusItem(event: any) {
+    private mediaSaveFocusItem(event: any): void {
         this.focusItem = event ? event.target : null;
     }
-    private mediaSearchIncremental(event: any) {
+    private mediaSearchIncremental(event: any): void {
         this.focusItem = event.target;
 
         const message = {

@@ -26,7 +26,7 @@ class SrcCheckbox {
         this.value = defaultValue;
     }
 
-    srcInit(context: ExtensionContext) {
+    srcInit(context: ExtensionContext): void {
         if (this.srcDefaultValue === null) {
             console.log("srcInit this.srcDefaultValue === null, so value no initialized");
             return;
@@ -37,7 +37,7 @@ class SrcCheckbox {
         }
     }
     // remove: true to remove the value from context
-    srcSaveStatus(context: ExtensionContext, remove: boolean = false) {
+    srcSaveStatus(context: ExtensionContext, remove: boolean = false): void {
         if (this.value === null) {
             console.log("srcSaveStatus this.value === null");
             return;
@@ -48,7 +48,7 @@ class SrcCheckbox {
             context.workspaceState.update(this.checkboxLabelId, remove ? undefined : this.label);
         }
     }
-    srcFromMessage(message: Message) {
+    srcFromMessage(message: Message): void {
         if (!(this.id in message)) {
             console.log(`srcFromMessage ${this.id} not in message`);
             return;
@@ -80,7 +80,7 @@ class SrcCheckboxManager {
         this.firstStart = true;
     }
 
-    srcInit(context: ExtensionContext) {
+    srcInit(context: ExtensionContext): void {
         const eltsKey = `${this.id}Elts`;
         this.firstStart = !context.workspaceState.keys().includes(eltsKey);
         console.log(this.id, "srcInit", "this.firstStart", this.firstStart);
@@ -112,7 +112,7 @@ class SrcCheckboxManager {
         }
         return elt;
     }
-    srcSaveStatus(context: ExtensionContext) {
+    srcSaveStatus(context: ExtensionContext): void {
         const eltNames = [...this.elts].map(elt => elt.id);
         console.log(this.id, "srcSaveStatus", eltNames);
         context.workspaceState.update(`${this.id}Elts`, eltNames);
@@ -121,12 +121,12 @@ class SrcCheckboxManager {
             elt.srcSaveStatus(context);
         }
     }
-    srcFromMessage(message: Message) {
+    srcFromMessage(message: Message): void {
         for (const elt of this.elts) {
             elt.srcFromMessage(message);
         }
     }
-    srcManageManagerMessage(message: Message, context: ExtensionContext) {
+    srcManageManagerMessage(message: Message, context: ExtensionContext): void {
         console.log(this.id, `srcManageManagerMessage ${message.command}`, message);
         switch (message.command) {
             case 'exec':
@@ -281,7 +281,7 @@ export class SrcFilesToManager extends SrcCheckboxManager {
         console.log("srcBuildElt returns new SrcCheckbox", eltName);
         return new SrcCheckbox(eltName, null, false, true);
     }
-    srcManageManagerMessage(message: Message, context: ExtensionContext) {
+    srcManageManagerMessage(message: Message, context: ExtensionContext): void {
         console.log(this.id, "srcManageManagerMessage", "message.command", message.command);
 
         const stopAfterParent = this.srcManageManagerMessageMustStopAfterParent(message);
@@ -367,18 +367,18 @@ export class SrcMmi {
         this.managers      = this.mainManagers.concat(this.otherManagers);
     }
 
-    srcInit(context: ExtensionContext) {
+    srcInit(context: ExtensionContext): void {
         for (const manager of this.managers) {
             manager.srcInit(context);
         }
     }
-    srcFromMainMessage(message: Message, context: ExtensionContext) {
+    srcFromMainMessage(message: Message, context: ExtensionContext): void {
         for (const manager of this.mainManagers) {
             manager.srcFromMessage(message);
             manager.srcSaveStatus(context);
         }
     }
-    srcManageManagerMessage(message: Message, context: ExtensionContext) {
+    srcManageManagerMessage(message: Message, context: ExtensionContext): void {
         if (!('manager' in message)) {
             console.error("srcManageManagerMessage manager not in", message);
             return;

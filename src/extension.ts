@@ -114,7 +114,7 @@ function readCheckbox(context: ExtensionContext, name: string, defaultValue: boo
 }
 
   
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.commands.registerCommand('case-incremental-search.start', () => {
 			CaseSearchPanel.createOrShow(context);
@@ -162,7 +162,7 @@ class CaseSearchPanel {
 	private readonly _extensionUri: vscode.Uri;
 	private _disposables: vscode.Disposable[] = [];
 
-	public static createOrShow(context: ExtensionContext) {
+	public static createOrShow(context: ExtensionContext): void {
 		const column = vscode.window.activeTextEditor
 			? vscode.window.activeTextEditor.viewColumn
 			: undefined;
@@ -184,7 +184,7 @@ class CaseSearchPanel {
 		CaseSearchPanel.currentPanel = new CaseSearchPanel(panel, context);
 	}
 
-	public static revive(panel: vscode.WebviewPanel, context: ExtensionContext) {
+	public static revive(panel: vscode.WebviewPanel, context: ExtensionContext): void {
 		CaseSearchPanel.currentPanel = new CaseSearchPanel(panel, context);
 	}
 
@@ -258,14 +258,14 @@ class CaseSearchPanel {
 	}
 
 	// Save status into context.workspaceState
-	private _saveMainStatus(context: ExtensionContext, message: any) {
+	private _saveMainStatus(context: ExtensionContext, message: any): void {
 		context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
 		context.workspaceState.update("text",              message.text);
 
 		mmi.srcFromMainMessage(message, context);
 	}
 
-	public dispose() {
+	public dispose(): void {
 		CaseSearchPanel.currentPanel = null;
 
 		// Clean up our resources
@@ -279,13 +279,13 @@ class CaseSearchPanel {
 		}
 	}
 
-	private _update() {
+	private _update(): void {
 		const webview = this._panel.webview;
 		this._panel.title = "Case Search";
 		this._panel.webview.html = this._getHtmlForWebview(webview);
 	}
 
-	private _getHtmlForWebview(webview: vscode.Webview) {
+	private _getHtmlForWebview(webview: vscode.Webview): string {
 		// Local path to media directory in the webview
 		const mediaPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media');
 
@@ -379,7 +379,7 @@ class CaseSearchPanel {
 	}
 }
 
-function getNonce() {
+function getNonce(): string {
 	let text = '';
 	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 	for (let i = 0; i < 32; i++) {
