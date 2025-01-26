@@ -543,9 +543,8 @@ export class MediaMmi {
         // Focus on textToSearch at beginning (idem vscode search)
         this.textToSearch.focus();
         // Text selected (idem vscode search), so can user can paste a new text
-        this.textToSearch.selectionStart = 0;
-        this.textToSearch.selectionEnd = 10000;
-        // At beginning, includes switch editor tab
+        this.textToSearch.select();
+        // At beginning (which includes editor tab switching)
     }
 
     mediaInit(): void {
