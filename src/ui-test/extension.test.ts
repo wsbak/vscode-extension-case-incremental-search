@@ -241,6 +241,7 @@ class Cases {
         await this.check();
     }
     async check() {
+        await sleepMs(50);  // sometimes, check fails even the screenshot is correct
         await this.all.check();
         for (const elt of this.elts) {
             await elt.check();
@@ -343,6 +344,7 @@ class Word {
         await this.check();
     }
     async check() {
+        await sleepMs(50);  // sometimes, check fails even the screenshot is correct
         await this.wholeCheckbox.check();
         await this.beginCheckbox.check();
         await this.endCheckbox.check();
@@ -510,6 +512,7 @@ class FilesTo {
         await this.checkOrder();
     }
     async check() {
+        await sleepMs(50);  // sometimes, check fails even the screenshot is correct
         await this.allCheckbox.check();
         await this.addEditableCheckbox.check();
         for (const elt of this.elts) {
