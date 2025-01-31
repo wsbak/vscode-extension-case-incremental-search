@@ -6,6 +6,34 @@ import { buildRegexQuery, buildRegexQueryNoCaseSelected } from "./search_regex";
 
 type Message = { [key: string]: any };
 
+
+// Read string from context.workspaceState
+function readString(context: ExtensionContext, name: string): string {
+    const value = context.workspaceState.get<string>(name, "");
+    // console.log(`readString ${name}=${value}`);
+    return value;
+}
+
+// Read boolean from context.workspaceState
+// If not found use defaultValue
+function readBoolean(context: ExtensionContext, name: string, defaultValue: boolean = false): boolean {
+    const value = context.workspaceState.get<boolean>(name, defaultValue);
+    // console.log(`readCheckbox ${name}=${checked}`);
+    return value;
+}
+
+// Read boolean from context.workspaceState
+// If not found use defaultValue
+// Returns "checked" if true, "" otherwise
+function readCheckbox(context: ExtensionContext, name: string, defaultValue: boolean = false): string {
+    const value = readBoolean(context, name, defaultValue);
+    const checked = value ? "checked" : "";
+    // console.log(`readCheckbox ${name}=${checked}`);
+    return checked;
+}
+
+  
+
 class SrcCheckbox {
 	public  readonly id: string;                             // id inside message and load/save into context
 	private readonly checkboxLabelId: string;                // id inside message and load/save into context
@@ -350,11 +378,11 @@ export class SrcFilesToExcludeManager extends SrcFilesToManager {
 
 // Defines some parts of the mmi
 export class SrcMmi {
-    public readonly caseManager: SrcCaseManager;
-    public readonly wordManager: SrcWordManager;
-    public readonly filesToIncludeManager: SrcFilesToIncludeManager;
-    public readonly filesToExcludeManager: SrcFilesToExcludeManager;
-    public readonly managers: SrcCheckboxManager[];
+    public  readonly caseManager: SrcCaseManager;
+    private readonly wordManager: SrcWordManager;
+    private readonly filesToIncludeManager: SrcFilesToIncludeManager;
+    private readonly filesToExcludeManager: SrcFilesToExcludeManager;
+    private readonly managers: SrcCheckboxManager[];
     private readonly mainManagers: SrcCheckboxManager[];
     private readonly otherManagers: SrcCheckboxManager[];
 
@@ -373,13 +401,57 @@ export class SrcMmi {
             manager.srcInit(context);
         }
     }
-    srcFromMainMessage(message: Message, context: ExtensionContext): void {
+    srcGetHtml(context: ExtensionContext): string {
+		const caseHtml           = this.caseManager.srcGetHtml();
+		const text               = readString(  context, "text");
+		const sensitiveCaseState = readCheckbox(context, "sensitiveCase", true);
+		const wordHtml           = this.wordManager.srcGetHtml();
+		const filesToIncludeHtml = this.filesToIncludeManager.srcGetHtml();
+		const filesToExcludeHtml = this.filesToExcludeManager.srcGetHtml();
+
+        return `
+            <div>
+                <div class="container">
+                    <div class="left">
+                        <fieldset id="cases">
+                            <legend>Cases to search for</legend>
+                            ${caseHtml}
+                        </fieldset>
+                    </div>
+                    <div class="right">
+                        <fieldset id="options">
+                            <legend>Search</legend>
+                            <input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
+                            <div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case" /> <label for="sensitive-case">Sensitive case</label></div>
+                            ${wordHtml}
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <div>
+                    <fieldset>
+                        <legend>Files to include</legend>
+                        ${filesToIncludeHtml}
+                    </fieldset>
+                </div>
+                <div>
+                    <fieldset>
+                        <legend>Files to exclude</legend>
+                        ${filesToExcludeHtml}
+                    </fieldset>
+                </div>
+            </div>
+        `;
+    }
+    private srcFromMainMessage(message: Message, context: ExtensionContext): void {
         for (const manager of this.mainManagers) {
             manager.srcFromMessage(message);
             manager.srcSaveStatus(context);
         }
     }
-    srcManageManagerMessage(message: Message, context: ExtensionContext): void {
+    private srcManageManagerMessage(message: Message, context: ExtensionContext): void {
         if (!('manager' in message)) {
             console.error("srcManageManagerMessage manager not in", message);
             return;

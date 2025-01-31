@@ -3,32 +3,6 @@ import type { ExtensionContext } from "vscode";
 import { SrcMmi } from "./mmi_src";
 
 
-// Read string from context.workspaceState
-function readString(context: ExtensionContext, name: string): string {
-	const value = context.workspaceState.get<string>(name, "");
-	// console.log(`readString ${name}=${value}`);
-	return value;
-}
-
-// Read boolean from context.workspaceState
-// If not found use defaultValue
-function readBoolean(context: ExtensionContext, name: string, defaultValue: boolean = false): boolean {
-	const value = context.workspaceState.get<boolean>(name, defaultValue);
-	// console.log(`readCheckbox ${name}=${checked}`);
-	return value;
-}
-
-// Read boolean from context.workspaceState
-// If not found use defaultValue
-// Returns "checked" if true, "" otherwise
-function readCheckbox(context: ExtensionContext, name: string, defaultValue: boolean = false): string {
-	const value = readBoolean(context, name, defaultValue);
-	const checked = value ? "checked" : "";
-	// console.log(`readCheckbox ${name}=${checked}`);
-	return checked;
-}
-
-  
 export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.commands.registerCommand('case-incremental-search.start', () => {
@@ -108,6 +82,7 @@ class CaseSearchPanel {
 		this._panel = panel;
 		this._context = context;
 		this._extensionUri = context.extensionUri;
+		this._mmi.srcInit(this._context);
 
 		{
 			const keys = this._context.workspaceState.keys();
@@ -184,16 +159,7 @@ class CaseSearchPanel {
 		// Use a nonce to only allow specific scripts to be run
 		const nonce = getNonce();
 
-		const context = this._context;
-		this._mmi.srcInit(context);
-
-		const wordHtml = this._mmi.wordManager.srcGetHtml();
-		const caseHtml = this._mmi.caseManager.srcGetHtml();
-		const filesToIncludeHtml = this._mmi.filesToIncludeManager.srcGetHtml();
-		const filesToExcludeHtml = this._mmi.filesToExcludeManager.srcGetHtml();
-
-		const sensitiveCaseState = readCheckbox(context, "sensitiveCase",     true);
-		const text               = readString(  context, "text");
+		const html = this._mmi.srcGetHtml(this._context);
 
 		return `<!DOCTYPE html>
 			<html lang="en">
@@ -217,39 +183,7 @@ class CaseSearchPanel {
 				<title>Case Search</title>
 			</head>
 			<body>
-				<div>
-					<div class="container">
-						<div class="left">
-							<fieldset id="cases">
-								<legend>Cases to search for</legend>
-								${caseHtml}
-							</fieldset>
-						</div>
-						<div class="right">
-							<fieldset id="options">
-								<legend>Search</legend>
-								<input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
-								<div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case" /> <label for="sensitive-case">Sensitive case</label></div>
-								${wordHtml}
-							</fieldset>
-						</div>
-					</div>
-				</div>
-
-				<div class="container">
-					<div>
-						<fieldset>
-							<legend>Files to include</legend>
-							${filesToIncludeHtml}
-						</fieldset>
-					</div>
-					<div>
-						<fieldset>
-							<legend>Files to exclude</legend>
-							${filesToExcludeHtml}
-						</fieldset>
-					</div>
-				</div>
+				${html}
 
 				<script nonce="${nonce}" src="${scriptExportsUri}"></script>
 				<script nonce="${nonce}" src="${scriptMmiMediaUri}"></script>
