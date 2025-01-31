@@ -2,11 +2,12 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { paramCase, pascalCase, constantCase, snakeCase, camelCase, capitalCase, pathCase } from "change-case";
 
-import { exportedForTesting } from '../extension';
-import { SrcCaseManager } from "../mmi_src";
-const { buildRegexQuery, buildRegexQueryNoCaseSelected, messageToRegexQuery } = exportedForTesting;
+import { buildRegexQuery, buildRegexQueryNoCaseSelected } from '../search_regex';
+import { SrcMmi } from "../mmi_src";
 
-const caseManager = new SrcCaseManager();
+
+const mmi              = new SrcMmi();
+const caseManager      = mmi.caseManager;
 const paramCaseData    = caseManager.kebab.convertFctData;
 const camelCaseData    = caseManager.camel.convertFctData;
 const pascalCaseData   = caseManager.pascal.convertFctData;
@@ -14,6 +15,11 @@ const snakeCaseData    = caseManager.snake.convertFctData;
 const constantCaseData = caseManager.upperSnake.convertFctData;
 const capitalCaseData  = caseManager.capital.convertFctData;
 const pathCaseData     = caseManager.path.convertFctData;
+
+function messageToRegexQuery(message: any): [string, boolean] {
+	return mmi.messageToRegexQuery(message);
+}
+
 
 // Build a message for transformQuery2RegExp & buildRegexQuery
 // booleanNames specifies the "field1,field2,...,fieldn" to set to true

@@ -2,6 +2,7 @@
 import * as vscode from 'vscode';
 import type { ExtensionContext } from "vscode";
 import { paramCase, camelCase, pascalCase, snakeCase, constantCase, capitalCase, pathCase } from "change-case";
+import { buildRegexQuery, buildRegexQueryNoCaseSelected } from "./search_regex";
 
 type Message = { [key: string]: any };
 
@@ -394,5 +395,54 @@ export class SrcMmi {
         }
 
         console.error("srcManageManagerMessage manager", managerId, " not found");
+    }
+    onDidReceiveMessage(message: Message, webview: vscode.Webview, context: ExtensionContext): void {
+        if ('manager' in message) {
+            console.log(`manager message ${message.command} received`);
+            console.log(message);
+            this.srcManageManagerMessage(message, context);
+            // Set the focus back to the input
+            webview.postMessage({ command: 'focus' });
+            return;
+        }
+
+        switch (message.command) {
+            case 'main-instant':
+                console.log(`${message.command} received`, message.text);
+                this._saveMainStatus(context, message);
+                const [query, matchWholeWord] = this.messageToRegexQuery(message);
+                vscode.commands.executeCommand("workbench.action.findInFiles", {
+                    query: query,
+                    triggerSearch: true,
+                    isRegex: true,
+                    isCaseSensitive: message.sensitiveCase,
+                    matchWholeWord: matchWholeWord,
+                });
+                break;
+
+            default:
+                console.log(`${message.command} ??? received`, message);
+                return;
+        }
+        // Set the focus back to the input
+        webview.postMessage({ command: 'focus' });
+    }
+	// Save status into context.workspaceState
+	private _saveMainStatus(context: ExtensionContext, message: any): void {
+		context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
+		context.workspaceState.update("text",              message.text);
+
+		this.srcFromMainMessage(message, context);
+	}
+    // build regex query with all cases selected
+    // also returns matchWholeWord for the vscode command workbench.action.findInFiles
+    messageToRegexQuery(message: any): [string, boolean] {
+        const selectedCaseFunctions: any[] = this.caseManager.srcGetSelectedCaseFunctions(message);
+
+        if (selectedCaseFunctions.length <= 0) {
+            return buildRegexQueryNoCaseSelected(message.text, message);
+        }
+
+        return [buildRegexQuery(message.text, selectedCaseFunctions, message), false];
     }
 }

@@ -3,91 +3,6 @@ import type { ExtensionContext } from "vscode";
 import { SrcMmi } from "./mmi_src";
 
 
-// build regex which exclude letter/number/separator before the beginning or after the end
-function buildRegexExclude(separator: string, preceded: boolean): string {
-	if (separator === ".") {
-		separator = "\\.";
-	}
-	const precededStr = preceded === true ? "<" : "";
-	// \d    = digit
-	return `(?${precededStr}![a-zA-Z\\d${separator}])`;
-
-	// \p{L} = any letter, not only ascii/latin
-	// xxxCase manage only ascii characters : see test('xxxCase'
-	// So using \p{L} seems strange/useless/contradictory
-}
-
-// build regex which exclude letter/number/separator before the beginning
-function buildRegexExcludePreceded(separator: string): string {
-	return buildRegexExclude(separator, true);
-}
-
-// build regex which exclude letter/number/separator after the end
-function buildRegexExcludeFollowed(separator: string): string {
-	return buildRegexExclude(separator, false);
-}
-
-// build regex query with all cases selected
-function buildRegexQuery(query: string, selectedCaseFunctions: readonly any[], message: any): string {
-	const queries: string[] = [];
-	for (const caseFunctionData of selectedCaseFunctions) {
-		const caseFunction = caseFunctionData[0];
-		let queryScope = caseFunction(query) || query;
-
-		const separator: string = caseFunctionData[1];
-		if (message.beginWord) {
-			queryScope = buildRegexExcludePreceded(separator) + queryScope;
-		}
-		if (message.endWord) {
-			queryScope = queryScope + buildRegexExcludeFollowed(separator);
-		}
-
-		queries.push(queryScope);
-	}
-  
-	return removeDuplicates(queries).join("|");
-}
-
-// build regex query without any case selected
-// also returns matchWholeWord for the vscode command workbench.action.findInFiles
-function buildRegexQueryNoCaseSelected(query: string, message: any): [string, boolean] {
-	if (message.beginWord && message.endWord) {
-		// Managed by matchWholeWord
-		return [query, true];
-	}
-
-	if (message.beginWord) {
-		query = "\\b" + query;
-	}
-	if (message.endWord) {
-		query = query + "\\b";
-	}
-
-	return [query, false];
-}
-
-/**
- * Construct a copy of an array with duplicate items removed.
- * Where duplicate items exist, only the first instance will be kept.
- */
-function removeDuplicates<T>(array: T[]): T[] {
-	return [...new Set(array)];
-}
-
-const mmi = new SrcMmi();
-
-// build regex query with all cases selected
-// also returns matchWholeWord for the vscode command workbench.action.findInFiles
-function messageToRegexQuery(message: any): [string, boolean] {
-	const selectedCaseFunctions: any[] = mmi.caseManager.srcGetSelectedCaseFunctions(message);
-
-	if (selectedCaseFunctions.length <= 0) {
-		return buildRegexQueryNoCaseSelected(message.text, message);
-	}
-
-	return [buildRegexQuery(message.text, selectedCaseFunctions, message), false];
-}
-
 // Read string from context.workspaceState
 function readString(context: ExtensionContext, name: string): string {
 	const value = context.workspaceState.get<string>(name, "");
@@ -160,7 +75,8 @@ class CaseSearchPanel {
 	private _context: ExtensionContext;
 	private readonly _panel: vscode.WebviewPanel;
 	private readonly _extensionUri: vscode.Uri;
-	private _disposables: vscode.Disposable[] = [];
+	private readonly _disposables: vscode.Disposable[] = [];
+	private readonly _mmi = new SrcMmi();
 
 	public static createOrShow(context: ExtensionContext): void {
 		const column = vscode.window.activeTextEditor
@@ -222,47 +138,11 @@ class CaseSearchPanel {
 		// Handle messages from the webview
 		this._panel.webview.onDidReceiveMessage(
 			message => {
-				if ('manager' in message) {
-					console.log(`manager message ${message.command} received`);
-					console.log(message);
-					mmi.srcManageManagerMessage(message, this._context);
-					// Set the focus back to the input
-					this._panel.webview.postMessage({ command: 'focus' });
-					return;
-				}
-
-				switch (message.command) {
-					case 'main-instant':
-						console.log(`${message.command} received`, message.text);
-						this._saveMainStatus(this._context, message);
-						const [query, matchWholeWord] = messageToRegexQuery(message);
-						vscode.commands.executeCommand("workbench.action.findInFiles", {
-							query: query,
-							triggerSearch: true,
-							isRegex: true,
-							isCaseSensitive: message.sensitiveCase,
-							matchWholeWord: matchWholeWord,
-						});
-						break;
-
-					default:
-						console.log(`${message.command} ??? received`, message);
-						return;
-				}
-				// Set the focus back to the input
-				this._panel.webview.postMessage({ command: 'focus' });
+				this._mmi.onDidReceiveMessage(message, this._panel.webview, this._context);
 			},
 			null,
 			this._disposables
 		);
-	}
-
-	// Save status into context.workspaceState
-	private _saveMainStatus(context: ExtensionContext, message: any): void {
-		context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
-		context.workspaceState.update("text",              message.text);
-
-		mmi.srcFromMainMessage(message, context);
 	}
 
 	public dispose(): void {
@@ -305,12 +185,12 @@ class CaseSearchPanel {
 		const nonce = getNonce();
 
 		const context = this._context;
-		mmi.srcInit(context);
+		this._mmi.srcInit(context);
 
-		const wordHtml = mmi.wordManager.srcGetHtml();
-		const caseHtml = mmi.caseManager.srcGetHtml();
-		const filesToIncludeHtml = mmi.filesToIncludeManager.srcGetHtml();
-		const filesToExcludeHtml = mmi.filesToExcludeManager.srcGetHtml();
+		const wordHtml = this._mmi.wordManager.srcGetHtml();
+		const caseHtml = this._mmi.caseManager.srcGetHtml();
+		const filesToIncludeHtml = this._mmi.filesToIncludeManager.srcGetHtml();
+		const filesToExcludeHtml = this._mmi.filesToExcludeManager.srcGetHtml();
 
 		const sensitiveCaseState = readCheckbox(context, "sensitiveCase",     true);
 		const text               = readString(  context, "text");
@@ -387,10 +267,3 @@ function getNonce(): string {
 	}
 	return text;
 }
-
-// Exports for test only
-export const exportedForTesting = {
-	buildRegexExcludePreceded, buildRegexExcludeFollowed,
-	buildRegexQuery, buildRegexQueryNoCaseSelected,
-	messageToRegexQuery,
-};
