@@ -147,7 +147,6 @@ class CaseSearchPanel {
 		// Uri to load scripts in the webview
 		const scriptUri         = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'main.js'));
 		const scriptMmiMediaUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'mmi_media.js'));
-		const scriptExportsUri  = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'exports.js'));
 
 		// Uri to load styles into webview
 		const stylesResetUri     = webview.asWebviewUri(vscode.Uri.joinPath(mediaPathOnDisk, 'reset.css'));
@@ -185,7 +184,6 @@ class CaseSearchPanel {
 			<body>
 				${html}
 
-				<script nonce="${nonce}" src="${scriptExportsUri}"></script>
 				<script nonce="${nonce}" src="${scriptMmiMediaUri}"></script>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
