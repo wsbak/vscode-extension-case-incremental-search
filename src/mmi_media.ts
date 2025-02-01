@@ -20,11 +20,11 @@ class MediaCheckbox {
 	private readonly removeEltId: string;
     public  readonly editable: boolean;                      // removeable + label is writeable (so saved and loaded)
     public           htmlClasses: string = "";
-    public           label: string;            // label of html checkbox
+    private          label: string;            // label of html checkbox
     // if null, no save/load, should be a main checkbox, recomputed by main.js
-	public           value: boolean | null;
+	private          value: boolean | null;
     public           htmlCheckbox: HTMLInputElement | null;        // element <checkboxId> from document
-    public           htmlEditable: {          // only if editable
+    private          htmlEditable: {          // only if editable
         htmlCheckboxLabel: HTMLInputElement,  // element <checkboxLabelId> from document
         removeButton: HTMLButtonElement;      // element <removeEltId> from document
     } | null = null;                          // never null after mediaInit IF editable
@@ -111,16 +111,16 @@ class MediaCheckbox {
 }
 
 class MediaCheckboxManager {
-    public  readonly id: string;
-    public  readonly addEltId: string;
+    private readonly id: string;
+    private readonly addEltId: string;
 	private readonly mainElt: MediaCheckbox;  // All checkbox permits to select/unselect all elts
-	public  readonly elts: MediaCheckbox[];
+	private readonly elts: MediaCheckbox[];
     private readonly autonomous: boolean;
-    public  readonly htmlTable: boolean;
+    private readonly htmlTable: boolean;
     private          eventListenerFocusMethod: any; // null until mediaAddEventListener
     private          eventListenerSendMethod: any;  // null until mediaAddEventListener, still null if autonomous
 
-    public           editable: {                // only if editable
+    private          editable: {                // only if editable
         addElt: MediaCheckboxAdd;
         draggableTable: DraggableTable;
     } | null = null;
@@ -439,19 +439,19 @@ class MediaCheckboxManager {
     }
 }
 
-export class MediaCaseManager extends MediaCheckboxManager {
+class MediaCaseManager extends MediaCheckboxManager {
 	constructor() {
         super("case", 'All');
     }
 }
 
-export class MediaWordManager extends MediaCheckboxManager {
+class MediaWordManager extends MediaCheckboxManager {
     constructor() {
         super("word", 'Whole word');
     }
 }
 
-export class MediaCheckboxAdd {
+class MediaCheckboxAdd {
     private readonly manager: MediaCheckboxManager;
 	private readonly id: string;                             // id inside message and load/save into context
     private readonly htmlApplyId: string;
@@ -486,13 +486,13 @@ export class MediaCheckboxAdd {
     }
 }
 
-export class MediaFilesToManager extends MediaCheckboxManager {
+class MediaFilesToManager extends MediaCheckboxManager {
     constructor(id: string) {
         super(id, "All", true, true);
     }
 }
 
-export class MediaFilesToIncludeManager extends MediaFilesToManager {
+class MediaFilesToIncludeManager extends MediaFilesToManager {
     constructor() {
         super("filesToInclude");
     }
@@ -506,7 +506,7 @@ export class MediaFilesToIncludeManager extends MediaFilesToManager {
     }
 }
 
-export class MediaFilesToExcludeManager extends MediaFilesToManager {
+class MediaFilesToExcludeManager extends MediaFilesToManager {
     constructor() {
         super("filesToExclude");
     }
@@ -518,13 +518,13 @@ export class MediaFilesToExcludeManager extends MediaFilesToManager {
 
 // Defines some parts of the mmi
 export class MediaMmi {
-    public readonly textToSearch: HTMLInputElement;
-    public readonly sensitiveCase: HTMLInputElement;
-    public readonly caseManager: MediaCaseManager;
-    public readonly wordManager: MediaWordManager;
-    public readonly filesToIncludeManager: MediaFilesToIncludeManager;
-    public readonly filesToExcludeManager: MediaFilesToExcludeManager;
-    public readonly managers: MediaCheckboxManager[];
+    private readonly textToSearch: HTMLInputElement;
+    private readonly sensitiveCase: HTMLInputElement;
+    private readonly caseManager: MediaCaseManager;
+    private readonly wordManager: MediaWordManager;
+    private readonly filesToIncludeManager: MediaFilesToIncludeManager;
+    private readonly filesToExcludeManager: MediaFilesToExcludeManager;
+    private readonly managers: MediaCheckboxManager[];
     private readonly mainManagers: MediaCheckboxManager[];
     private readonly otherManagers: MediaCheckboxManager[];
     private          focusItem: HTMLElement | null = null;

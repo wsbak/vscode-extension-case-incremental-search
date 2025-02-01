@@ -230,7 +230,7 @@ class SrcCheckboxManager {
 type CaseFunction = (input: string, ) => string;
 type ConvertFctSeparator = [CaseFunction, string];  // Convert function + their separator
 
-export class SrcCaseCheckbox extends SrcCheckbox {
+class SrcCaseCheckbox extends SrcCheckbox {
 	public readonly convertFctData: ConvertFctSeparator;
 
     constructor(id: string, label: string, defaultValue: boolean | null, caseFunction: CaseFunction, caseSeparator: string) {
@@ -239,7 +239,7 @@ export class SrcCaseCheckbox extends SrcCheckbox {
     }
 }
 
-export class SrcCaseManager extends SrcCheckboxManager {
+class SrcCaseManager extends SrcCheckboxManager {
 	public readonly kebab     : SrcCaseCheckbox;
 	public readonly camel     : SrcCaseCheckbox;
 	public readonly pascal    : SrcCaseCheckbox;
@@ -288,7 +288,7 @@ export class SrcCaseManager extends SrcCheckboxManager {
     }
 }
 
-export class SrcWordManager extends SrcCheckboxManager {
+class SrcWordManager extends SrcCheckboxManager {
     constructor() {
         const beginWord = new SrcCheckbox('beginWord', 'Begin word', false);
         const endWord   = new SrcCheckbox('endWord',   'End word',   false);
@@ -301,7 +301,7 @@ export class SrcWordManager extends SrcCheckboxManager {
     }
 }
 
-export class SrcFilesToManager extends SrcCheckboxManager {
+class SrcFilesToManager extends SrcCheckboxManager {
     constructor(id: string) {
         super(id, [], true, true);
     }
@@ -364,13 +364,13 @@ export class SrcFilesToManager extends SrcCheckboxManager {
     }
 }
 
-export class SrcFilesToIncludeManager extends SrcFilesToManager {
+class SrcFilesToIncludeManager extends SrcFilesToManager {
     constructor() {
         super("filesToInclude");  // workbench.action.findInFiles argument name
     }
 }
 
-export class SrcFilesToExcludeManager extends SrcFilesToManager {
+class SrcFilesToExcludeManager extends SrcFilesToManager {
     constructor() {
         super("filesToExclude");  // workbench.action.findInFiles argument name
     }
