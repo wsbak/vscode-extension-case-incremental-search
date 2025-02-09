@@ -2,8 +2,8 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { paramCase, pascalCase, constantCase, snakeCase, camelCase, capitalCase, pathCase } from "change-case";
 
-import { buildRegexQuery, buildRegexQueryNoCaseSelected } from '../search_regex';
-import { SrcMmi } from "../mmi_src";
+import { buildRegexQuery, buildRegexQueryNoCaseSelected } from '../src/search_regex';
+import { SrcMmi } from "../src/mmi_src";
 
 
 const mmi              = new SrcMmi();
