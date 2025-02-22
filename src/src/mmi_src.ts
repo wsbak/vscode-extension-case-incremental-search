@@ -35,13 +35,13 @@ function readCheckbox(context: ExtensionContext, name: string, defaultValue: boo
   
 
 class SrcCheckbox {
-	public  readonly id: string;                             // id inside message and load/save into context
-	private readonly checkboxLabelId: string;                // id inside message and load/save into context
+    public  readonly id: string;                             // id inside message and load/save into context
+    private readonly checkboxLabelId: string;                // id inside message and load/save into context
     private readonly editable: boolean;                      // removeable + label is writeable (so saved and loaded)
     public           label: string;            // label of html checkbox
     // if null, no save/load, should be a main checkbox, recomputed by main.js
-	private readonly srcDefaultValue: boolean | null;
-	public           value: boolean | null;
+    private readonly srcDefaultValue: boolean | null;
+    public           value: boolean | null;
 
     constructor(id: string,
                 label: string | null,                     // null if editable and so, label saved and loaded
@@ -96,11 +96,11 @@ class SrcCheckbox {
 
 class SrcCheckboxManager {
     public  readonly id: string;
-	public  readonly elts: SrcCheckbox[];
+    public  readonly elts: SrcCheckbox[];
     private readonly editable: boolean;
     private          firstStart: boolean;
 
-	constructor(id: string, elts: SrcCheckbox[],
+    constructor(id: string, elts: SrcCheckbox[],
                 editable: boolean = false,
                 _autonomous: boolean = false) {
         this.id = id;
@@ -231,7 +231,7 @@ type CaseFunction = (input: string, ) => string;
 type ConvertFctSeparator = [CaseFunction, string];  // Convert function + their separator
 
 class SrcCaseCheckbox extends SrcCheckbox {
-	public readonly convertFctData: ConvertFctSeparator;
+    public readonly convertFctData: ConvertFctSeparator;
 
     constructor(id: string, label: string, defaultValue: boolean | null, caseFunction: CaseFunction, caseSeparator: string) {
         super(id, label, defaultValue);
@@ -240,15 +240,15 @@ class SrcCaseCheckbox extends SrcCheckbox {
 }
 
 class SrcCaseManager extends SrcCheckboxManager {
-	public readonly kebab     : SrcCaseCheckbox;
-	public readonly camel     : SrcCaseCheckbox;
-	public readonly pascal    : SrcCaseCheckbox;
-	public readonly snake     : SrcCaseCheckbox;
-	public readonly upperSnake: SrcCaseCheckbox;
-	public readonly capital   : SrcCaseCheckbox;
-	public readonly path      : SrcCaseCheckbox;
+    public readonly kebab     : SrcCaseCheckbox;
+    public readonly camel     : SrcCaseCheckbox;
+    public readonly pascal    : SrcCaseCheckbox;
+    public readonly snake     : SrcCaseCheckbox;
+    public readonly upperSnake: SrcCaseCheckbox;
+    public readonly capital   : SrcCaseCheckbox;
+    public readonly path      : SrcCaseCheckbox;
 
-	constructor() {
+    constructor() {
         const kebab      = new SrcCaseCheckbox('kebabCase',      'kebab-case',       true, paramCase,    "-");
         const camel      = new SrcCaseCheckbox('camelCase',      'camelCase',        true, camelCase,    "");
         const pascal     = new SrcCaseCheckbox('pascalCase',     'PascalCase',       true, pascalCase,   "");
@@ -386,7 +386,7 @@ export class SrcMmi {
     private readonly mainManagers: SrcCheckboxManager[];
     private readonly otherManagers: SrcCheckboxManager[];
 
-	constructor() {
+    constructor() {
         this.caseManager           = new SrcCaseManager();
         this.wordManager           = new SrcWordManager();
         this.filesToIncludeManager = new SrcFilesToIncludeManager();
@@ -402,12 +402,12 @@ export class SrcMmi {
         }
     }
     srcGetHtml(context: ExtensionContext): string {
-		const caseHtml           = this.caseManager.srcGetHtml();
-		const text               = readString(  context, "text");
-		const sensitiveCaseState = readCheckbox(context, "sensitiveCase", true);
-		const wordHtml           = this.wordManager.srcGetHtml();
-		const filesToIncludeHtml = this.filesToIncludeManager.srcGetHtml();
-		const filesToExcludeHtml = this.filesToExcludeManager.srcGetHtml();
+        const caseHtml           = this.caseManager.srcGetHtml();
+        const text               = readString(  context, "text");
+        const sensitiveCaseState = readCheckbox(context, "sensitiveCase", true);
+        const wordHtml           = this.wordManager.srcGetHtml();
+        const filesToIncludeHtml = this.filesToIncludeManager.srcGetHtml();
+        const filesToExcludeHtml = this.filesToExcludeManager.srcGetHtml();
 
         return `
             <div>
@@ -422,7 +422,7 @@ export class SrcMmi {
                         <fieldset id="options">
                             <legend>Search</legend>
                             <input id="text-to-search" type="text" placeholder="Text to search" value="${text}"></input>
-                            <div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case" /> <label for="sensitive-case">Sensitive case</label></div>
+                            <div><input type="checkbox" ${sensitiveCaseState} id="sensitive-case" /> <label for="sensitive-case" id="sensitive-case-label">Sensitive case</label></div>
                             ${wordHtml}
                         </fieldset>
                     </div>
@@ -444,6 +444,11 @@ export class SrcMmi {
                 </div>
             </div>
         `;
+    }
+    onWebviewStart(webview: vscode.Webview, context: ExtensionContext) {
+        // Send history to the webview
+        const history = context.workspaceState.get<string[]>("textToSearchHistory", []);
+        webview.postMessage({ command: 'history', fieldId: 'text-to-search', history: history });
     }
     private srcFromMainMessage(message: Message, context: ExtensionContext): void {
         for (const manager of this.mainManagers) {
@@ -492,6 +497,10 @@ export class SrcMmi {
                 });
                 break;
 
+            case 'history':
+                context.workspaceState.update("textToSearchHistory", message.history);
+                break;
+
             default:
                 console.log(`${message.command} ??? received`, message);
                 return;
@@ -499,13 +508,13 @@ export class SrcMmi {
         // Set the focus back to the input
         webview.postMessage({ command: 'focus' });
     }
-	// Save status into context.workspaceState
-	private _saveMainStatus(context: ExtensionContext, message: any): void {
-		context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
-		context.workspaceState.update("text",              message.text);
+    // Save status into context.workspaceState
+    private _saveMainStatus(context: ExtensionContext, message: any): void {
+        context.workspaceState.update("sensitiveCase",     message.sensitiveCase);
+        context.workspaceState.update("text",              message.text);
 
-		this.srcFromMainMessage(message, context);
-	}
+        this.srcFromMainMessage(message, context);
+    }
     // build regex query with all cases selected
     // also returns matchWholeWord for the vscode command workbench.action.findInFiles
     messageToRegexQuery(message: any): [string, boolean] {

@@ -138,6 +138,7 @@ class CaseSearchPanel {
 		const webview = this._panel.webview;
 		this._panel.title = "Case Search";
 		this._panel.webview.html = this._getHtmlForWebview(webview);
+		this._mmi.onWebviewStart(webview, this._context);
 	}
 
 	private _getHtmlForWebview(webview: vscode.Webview): string {

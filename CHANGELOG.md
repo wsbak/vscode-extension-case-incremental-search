@@ -23,3 +23,7 @@
 ## 0.0.6  
 
 - feat: add "Files to include" and "Files to exclude"
+
+## 0.0.7  
+
+- feat: add history for "Text to search"

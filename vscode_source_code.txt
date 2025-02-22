@@ -1,0 +1,5 @@
+
+Files into src/vs/... are initially copied from vscode
+commit 9b2684c55e6a7c2f65a09b90ecf8441ad49f8e20
+
+Some code is commented/removed/modified

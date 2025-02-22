@@ -108,12 +108,18 @@ class Checkbox {
         label: string,
         selected: boolean,
     };
+    public readonly expectedInitialState: {
+        selected: boolean,
+    };
     constructor(id: string, label: WebElement, checkbox: WebElement, labelExpected: string, selectedExpected: boolean) {
         this.id = id;
         this.label = label;
         this.checkbox = checkbox;
         this.expected = {
             label: labelExpected,
+            selected: selectedExpected,
+        };
+        this.expectedInitialState = {
             selected: selectedExpected,
         };
     }
@@ -124,6 +130,9 @@ class Checkbox {
         expect(await this.checkbox.getAttribute('type')).equals('checkbox');
         expect(await this.checkbox.isDisplayed()).equals(true);
         expect(await this.checkbox.isEnabled()).equals(true);
+    }
+    async checkInitialState() {
+        expect(await this.checkbox.isSelected()).equals(this.expectedInitialState.selected);
     }
     async check() {
         expect(await this.checkbox.isSelected()).equals(this.expected.selected);
@@ -634,18 +643,105 @@ class FilesTo {
     }
 }
 
+class HistoryInput {
+    public readonly input: WebElement;
+    public readonly expected: {
+        text: string,
+        cursorAtEnd: boolean,  // true: cursor at end, false: cursor at beginning
+    };
+
+    static async new(view: WebView, id: string, previous: HistoryInput | null = null): Promise<HistoryInput> {
+        const input = await view.findWebElement(By.id(id));
+        const instance = new HistoryInput(input);
+        if (previous) {
+            instance.expected.text = previous.expected.text;
+        }
+        return instance;
+    }
+    // constructor can not be async
+    private constructor(input: WebElement) {
+        this.input = input;
+        this.expected = {
+            text: '',
+            cursorAtEnd: true,
+        };
+    }
+    async checkOnce() {
+        expect(await this.input.getAttribute('type')).equals('text');
+        expect(await this.input.isDisplayed()).equals(true);
+        expect(await this.input.isEnabled()).equals(true);
+    }
+    async checkInitialState() {
+        expect(this.expected.text).equals('');
+        await this.check();
+    }
+    async check() {
+        expect(await this.input.getAttribute("value")).equals(this.expected.text);
+    };
+    async sendKeys(text: string) {
+        // Send mutiple keys simultaneously has random behavior
+        // Perhaps keys are entered when input does not have the focus
+        for (const char of text) {
+            await this.input.sendKeys(char);
+        }
+        if (this.expected.cursorAtEnd) {
+            this.expected.text += text;
+        }
+        else {
+            this.expected.text = text + this.expected.text;
+        }
+        await this.check();
+    }
+    async clear() {
+        await this.input.clear();
+        this.expected.text = '';
+        await this.check();
+    }
+    async up(textExpected: string) {
+        await this.input.sendKeys(Key.ARROW_UP);
+        this.expected.text = textExpected;
+        this.expected.cursorAtEnd = true;
+        await this.check();
+    }
+    async down(textExpected: string) {
+        await this.input.sendKeys(Key.ARROW_DOWN);
+        this.expected.text = textExpected;
+        this.expected.cursorAtEnd = true;
+        await this.check();
+    }
+    async pageUp() {
+        await this.input.sendKeys(Key.PAGE_UP);
+        this.expected.cursorAtEnd = false;
+    }
+    async pageDown() {
+        await this.input.sendKeys(Key.PAGE_DOWN);
+        this.expected.cursorAtEnd = true;
+    }
+    async enter() {
+        await this.input.sendKeys(Key.ENTER);
+        await this.check();
+    }
+}
+
 class Mmi {
     public readonly cases: Cases;
-    public readonly sensitiveCase: WebElement;
-    public readonly textToSearch: WebElement;
+    public readonly sensitiveCase: Checkbox;
+    public readonly textToSearch: HistoryInput;
     public readonly word: Word;
     public readonly filesToInclude: FilesTo;
     public readonly filesToExclude: FilesTo;
 
     static async new(view: WebView, previous: Mmi | null = null): Promise<Mmi> {
         const cases             = await Cases.new(view, previous ? previous.cases : null);
-        const sensitiveCase     = await view.findWebElement(By.id('sensitive-case'));
-        const textToSearch      = await view.findWebElement(By.id('text-to-search'));
+        const sensitiveCase     = new Checkbox("sensitive-case",
+                                               await view.findWebElement(By.id('sensitive-case-label')),
+                                               await view.findWebElement(By.id('sensitive-case')),
+                                               "Sensitive case",
+                                               true);
+        if (previous) {
+            await sensitiveCase.restore(previous.sensitiveCase);
+        }
+        const textToSearch      = await HistoryInput.new(view, 'text-to-search', previous ? previous.textToSearch : null);
         const word              = await Word.new(view, previous ? previous.word : null);
         const filesToInclude    = await FilesTo.new(view, 'filesToInclude', previous ? previous.filesToInclude : null);
         const filesToExclude    = await FilesTo.new(view, 'filesToExclude', previous ? previous.filesToExclude : null);
@@ -655,8 +751,8 @@ class Mmi {
     }
     // constructor can not be async
     private constructor(cases: Cases,
-                        sensitiveCase: WebElement,
-                        textToSearch: WebElement,
+                        sensitiveCase: Checkbox,
+                        textToSearch: HistoryInput,
                         word: Word,
                         filesToInclude: FilesTo,
                         filesToExclude: FilesTo) {
@@ -666,6 +762,22 @@ class Mmi {
         this.word = word;
         this.filesToInclude = filesToInclude;
         this.filesToExclude = filesToExclude;
+    }
+    async checkOnce() {
+        await this.cases.checkOnce();
+        await this.sensitiveCase.checkOnce();
+        await this.textToSearch.checkOnce();
+        await this.word.checkOnce();
+        await this.filesToInclude.checkOnce();
+        await this.filesToExclude.checkOnce();
+    }
+    async checkInitialState() {
+        await this.cases.checkInitialState();
+        await this.sensitiveCase.checkInitialState();
+        await this.textToSearch.checkInitialState();
+        await this.word.checkInitialState();
+        await this.filesToInclude.checkInitialState();
+        await this.filesToExclude.checkInitialState();
     }
 }
 
@@ -721,8 +833,8 @@ class SideBar {
         expect(title).equals("EXPLORER");
     }
     private async checkSearchCommon() {
-        const textToSearch = await this.mmi.textToSearch.getAttribute("value");
-        const isSensitiveCaseSelected = await this.mmi.sensitiveCase.isSelected();
+        const textToSearch = await this.mmi.textToSearch.input.getAttribute("value");
+        const isSensitiveCaseSelected = await this.mmi.sensitiveCase.checkbox.isSelected();
 
         await this.view.switchBack();
 
@@ -854,56 +966,13 @@ describe('WebViews', function () {
     };
 
     // --------------------------------------------------------------------------------
-    describe('check once types', async function () {
-        it('cases', async function () {
-            await mmi.cases.checkOnce();
-        });
-
-        it('sensitiveCase', async function () {
-            expect(await mmi.sensitiveCase.getAttribute('type')).equals('checkbox');
-        });
-
-        it('textToSearch', async function () {
-            expect(await mmi.textToSearch.getAttribute('type')).equals('text');
-        });
-
-        it('words', async function () {
-            await mmi.word.checkOnce();
-        });
-
-        it('filesTo', async function () {
-            await mmi.filesToInclude.checkOnce();
-            await mmi.filesToExclude.checkOnce();
-        });
-    });
-
-    // --------------------------------------------------------------------------------
-    async function checkSensitiveCase(selected: boolean) {
-        expect(await mmi.sensitiveCase.isDisplayed()).equals(true);
-        expect(await mmi.sensitiveCase.isEnabled()).equals(true);
-        expect(await mmi.sensitiveCase.isSelected()).equals(selected);
-    };
-
-    async function checkTextToSearch(text: string) {
-        expect(await mmi.textToSearch.isDisplayed()).equals(true);
-        expect(await mmi.textToSearch.isEnabled()).equals(true);
-        expect(await mmi.textToSearch.getAttribute("value")).equals(text);
-    };
-
-    // --------------------------------------------------------------------------------
-    async function checkInitialState() {
-        await mmi.cases.checkInitialState();
-        await checkSensitiveCase(true);
-        await checkTextToSearch('');
-        await mmi.word.checkInitialState();
-        await mmi.filesToInclude.checkInitialState();
-        await mmi.filesToExclude.checkInitialState();
-    };
-
-    // --------------------------------------------------------------------------------
     describe('check initial state', async function () {
+        it('check once types', async function () {
+            await mmi.checkOnce();
+        });
+
         it('initial state', async function () {
-            await checkInitialState();
+            await mmi.checkInitialState();
             await sideBar.checkFirstState();
         });
     });
@@ -922,7 +991,7 @@ describe('WebViews', function () {
         // --------------------------------------------------------------------------------
         it('select allCases', async function () {
             await mmi.cases.selectAll();
-            await checkInitialState();
+            await mmi.checkInitialState();
         });
 
         // --------------------------------------------------------------------------------
@@ -950,7 +1019,7 @@ describe('WebViews', function () {
         // --------------------------------------------------------------------------------
         it('select allCases', async function () {
             await mmi.cases.selectAll();
-            await checkInitialState();
+            await mmi.checkInitialState();
         });
     });
 
@@ -988,16 +1057,14 @@ describe('WebViews', function () {
     describe('sensitiveCase', async function () {
 
         it('Check initial state', async function () {
-            await checkSensitiveCase(true);
-        });
-        it('select sensitiveCase', async function () {
-            await mmi.sensitiveCase.click();
-            await sideBar.checkSearch();  // check that sensitive case is unselected
-            await checkSensitiveCase(false);
+            await mmi.sensitiveCase.checkInitialState();
         });
         it('unselect sensitiveCase', async function () {
-            await mmi.sensitiveCase.click();
-            await checkSensitiveCase(true);
+            await mmi.sensitiveCase.unselect();
+            await sideBar.checkSearch();  // check that sensitive case is unselected
+        });
+        it('select sensitiveCase', async function () {
+            await mmi.sensitiveCase.select();
         });
     });
 
@@ -1007,68 +1074,100 @@ describe('WebViews', function () {
         it('key by key', async function () {
             this.timeout(4000);
 
-            await checkTextToSearch('');
-
-            const expected: string = "abcdefghijklm123456xyz";
-            for (const char of expected) {
-                await mmi.textToSearch.sendKeys(char);
-            }
-            await checkTextToSearch(expected);
+            await mmi.textToSearch.check();
+            await mmi.textToSearch.sendKeys("abcdefghijklm123456xyz");
             await sideBar.checkSearch();
+        });
+        it('history', async function () {
+            this.timeout(4000);
+
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");  // no previous history
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");  // no previous history
+            await mmi.textToSearch.down("");                      // no next history
+            await mmi.textToSearch.down("");                      // no next history
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");
+        });
+        it('history 2', async function () {
+            this.timeout(4000);
+
+            await mmi.textToSearch.sendKeys("123");
+
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");       // no previous history
+            await mmi.textToSearch.down("abcdefghijklm123456xyz123");
+            await mmi.textToSearch.down("");                           // no next history
+            await mmi.textToSearch.down("");                           // no next history
+            await mmi.textToSearch.up("abcdefghijklm123456xyz123");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");
+            await mmi.textToSearch.down("abcdefghijklm123456xyz123");
+        });
+        it('history 3', async function () {
+            this.timeout(4000);
+
+            await mmi.textToSearch.sendKeys("456");
+
+            await mmi.textToSearch.up("abcdefghijklm123456xyz123");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");          // no previous history
+            await mmi.textToSearch.down("abcdefghijklm123456xyz123");
+            await mmi.textToSearch.down("abcdefghijklm123456xyz123456");
+            await mmi.textToSearch.down("");                              // no next history
+        });
+        it('history 4', async function () {
+            this.timeout(4000);
+
+            await mmi.textToSearch.sendKeys("789");
+
+            await mmi.textToSearch.up("abcdefghijklm123456xyz123456");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz123");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");          // no previous history
+            await mmi.textToSearch.down("abcdefghijklm123456xyz123");
+            await mmi.textToSearch.down("abcdefghijklm123456xyz123456");
+            await mmi.textToSearch.down("789");
+            await mmi.textToSearch.down("");                              // no next history
+        });
+        it('page up/down', async function () {
+            this.timeout(4000);
 
             await mmi.textToSearch.clear();
+
+            await mmi.textToSearch.sendKeys("abc");
+            await mmi.textToSearch.pageUp();         // so cursor at beginning
+            await mmi.textToSearch.sendKeys("123");
+            await mmi.textToSearch.pageDown();       // so cursor at end
+            await mmi.textToSearch.sendKeys("456");
+
+            await mmi.textToSearch.up("789");
+            await mmi.textToSearch.down("123abc456");
         });
-        // Send mutiple keys simultaneously has random behavior
-        // Perhaps keys are entered when input does not have the focus
-        // So comment all tests
-        // it('mutiple keys simultaneously 1', async function () {
-        //     await checkTextToSearch('');
+        it('enter', async function () {
+            this.timeout(4000);
 
-        //     await mmi.textToSearch.sendKeys("abcdefghijklm");
-        //     await sleepMs(100);
-        //     // KO with sleepMs(100): abcd
-        //     await checkTextToSearch('abcdefghijklm');
+            await mmi.textToSearch.enter();  // Currently does nothing
 
-        //     await mmi.textToSearch.sendKeys("123456");
-        //     await sleepMs(100);
-        //     // KO with sleepMs(100): abcdefghijklm1234
-        //     await checkTextToSearch('abcdefghijklm123456');
+            await mmi.textToSearch.up("789");
+            await mmi.textToSearch.down("123abc456");
+            await mmi.textToSearch.down("");          // no next history
+        });
+        it('input enter input', async function () {
+            this.timeout(4000);
 
-        //     await mmi.textToSearch.clear();
-        // });
-        // it('mutiple keys simultaneously 2', async function () {
-        //     await checkTextToSearch('');
+            await mmi.textToSearch.sendKeys("begin");
+            await mmi.textToSearch.enter();           // save into history
+            await mmi.textToSearch.sendKeys("end");
 
-        //     await mmi.textToSearch.sendKeys("abcdefghi");
-        //     await sleepMs(100);
-        //     // KO without sleepMs:   abc
-        //     // KO with sleepMs(100): abcdabcdefgh
-        //     await checkTextToSearch('abcdefghi');
-
-        //     await mmi.textToSearch.sendKeys("123456");
-        //     await sleepMs(100);
-        //     // KO with sleepMs(100): abcdefghijklm12ab123
-        //     await checkTextToSearch('abcdefghi123456');
-
-        //     await mmi.textToSearch.clear();
-        // });
-        // it('mutiple keys 3', async function () {
-        //     await checkTextToSearch('');
-
-        //     await mmi.textToSearch.sendKeys("abcdefghijklm");
-        //     await sleepMs(100);
-        //     // KO without sleepMs:   abcabc
-        //     // KO with sleepMs(100): abcdabcdefghabc
-        //     // KO with sleepMs(100): abcde
-        //     await checkTextToSearch('abcdefghijklm');
-
-        //     await mmi.textToSearch.sendKeys("123");
-        //     await sleepMs(100);
-        //     // KO with sleepMs(100): abcdefghijklm12ab123abc123
-        //     await checkTextToSearch('abcdefghijklm123');
-
-        //     await mmi.textToSearch.clear();
-        // });
+            await mmi.textToSearch.up("begin");       // saved by enter
+            await mmi.textToSearch.up("123abc456");
+            await mmi.textToSearch.up("789");
+            await mmi.textToSearch.down("123abc456");
+            await mmi.textToSearch.down("begin");
+            await mmi.textToSearch.down("beginend");
+            await mmi.textToSearch.down("");          // no next history
+        });
+        it('clear', async function () {
+            await mmi.textToSearch.clear();
+        });
     });
 
     // --------------------------------------------------------------------------------
@@ -1171,11 +1270,8 @@ describe('WebViews', function () {
             this.timeout(20000);
 
             await mmi.cases.unselectById(mmi.cases.pascal.id);
-            await mmi.sensitiveCase.click();
-            const expected: string = "123abc";
-            for (const char of expected) {
-                await mmi.textToSearch.sendKeys(char);
-            }
+            await mmi.sensitiveCase.unselect();
+            await mmi.textToSearch.sendKeys("save/restore");
             await mmi.word.beginSelect();
             await sideBar.checkSearch();
 
@@ -1211,9 +1307,10 @@ describe('WebViews', function () {
         });
 
         it('check restored state', async function () {
+            this.timeout(8000);
             await mmi.cases.check();
-            await checkSensitiveCase(false);
-            await checkTextToSearch('123abc');
+            await mmi.sensitiveCase.check();
+            await mmi.textToSearch.check();
             await mmi.word.check();
             await mmi.filesToInclude.check();
             await mmi.filesToInclude.checkOrder();
@@ -1221,6 +1318,24 @@ describe('WebViews', function () {
             await mmi.filesToExclude.checkOrder();
             // The sideBar is absolutely not modified
             await sideBar.checkSearchSelectFiles();
+        });
+        it('check restored history', async function () {
+            await mmi.textToSearch.up("beginend");
+            await mmi.textToSearch.up("begin");
+            await mmi.textToSearch.up("123abc456");
+            await mmi.textToSearch.up("789");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz123456");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz123");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");
+            await mmi.textToSearch.up("abcdefghijklm123456xyz");          // no previous history
+            await mmi.textToSearch.down("abcdefghijklm123456xyz123");
+            await mmi.textToSearch.down("abcdefghijklm123456xyz123456");
+            await mmi.textToSearch.down("789");
+            await mmi.textToSearch.down("123abc456");
+            await mmi.textToSearch.down("begin");
+            await mmi.textToSearch.down("beginend");
+            await mmi.textToSearch.down("save/restore");
+            await mmi.textToSearch.down("");                              // no next history
         });
     });
 
